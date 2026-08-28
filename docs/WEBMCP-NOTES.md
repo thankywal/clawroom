@@ -54,3 +54,29 @@ Delivered as a `<meta http-equiv="origin-trial">` tag in every page. Subdomain
 matching is unavailable here — `workers.dev` is on the Public Suffix List, so
 the token is bound to this exact origin. Third-party matching is not needed:
 Council's tools are registered by the page itself, on its own origin.
+
+## `executeTool()` returns a string
+
+Worth knowing before you write anything against it: `executeTool(tool, jsonArgs)`
+resolves to the result envelope **serialised as JSON**, not as an object. So a
+tool that returns `{ content:[{type:'text',text:'{"feasible":false}'}] }` comes
+back needing two parses — the envelope, then the payload inside `content[].text`:
+
+    let env = await mc.executeTool(tool, JSON.stringify(args));
+    if (typeof env === 'string') env = JSON.parse(env);
+    const text = env.content.map(c => c.text).join('');
+    const data = env.structuredContent ?? JSON.parse(text);
+
+`public/selftest.html` exercises all eight Council tools this way and reports
+pass/fail in the page. It needs no agent, which makes it the honest answer to
+"do these tools actually work" — 8/8 against the deployed origin in a clean
+Chrome profile with no flags set.
+
+## What did not work
+
+Chrome's **Ask Gemini** side panel did not call the tools. Given the same
+prompt it ran a Google Search, read the page, and reported constraints it had
+"stored" and options it had "proposed" — none of which had happened; the page's
+activity log stayed empty. Useful to know that a agent surface being adjacent to
+the page does not mean it speaks WebMCP, and that a model will narrate the
+actions it did not take.

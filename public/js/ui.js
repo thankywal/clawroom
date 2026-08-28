@@ -42,6 +42,37 @@ function activity({actor, tool, detail, zone}) {
   const f = document.getElementById('feed'); f.scrollTop = 1e9;
 }
 
+/* ---------- where the agent lives ----------
+ * Council deliberately has no chat box: the agent belongs to the browser, not
+ * to us. That is the whole point of WebMCP, and it is also the first thing a
+ * newcomer gets stuck on — so the page says it out loud. */
+export const PROMPT =
+  "I'm in this Council. My budget is $750 max and I prefer direct flights. " +
+  "Store that privately, then check every option and propose or reject on my behalf.";
+
+function agentHint() {
+  const chatgpt = /ChatGPT/i.test(navigator.userAgent);
+  const where = chatgpt
+    ? 'the ChatGPT chat beside this page'
+    : 'Ask Gemini, top right of Chrome';
+  return `<div class="hintbar">
+      <span class="lab">Your agent is not in this page</span>
+      <span>Open <b>${where}</b> and paste:</span>
+      <code id="promptText">${PROMPT}</code>
+      <button class="ghost" id="copyPrompt">Copy</button>
+    </div>`;
+}
+
+function wireHint() {
+  const b = document.getElementById('copyPrompt');
+  if (!b) return;
+  b.onclick = async () => {
+    try { await navigator.clipboard.writeText(PROMPT); b.textContent = 'Copied'; }
+    catch { b.textContent = 'Select it'; }
+    setTimeout(() => b.textContent = 'Copy', 1600);
+  };
+}
+
 /* ---------- render ---------- */
 function renderBar() {
   const live = !!mc;
@@ -124,13 +155,12 @@ function renderOutcome(a) {
   /* Stage 2 — the others have spoken, you have not. Your agent's turn. */
   if (!iAmIn) {
     el.innerHTML = `<div class="banner">Mya and Su have sent their agents. Their verdicts
-      are public; their reasons are not. <b>Your turn.</b>
-      <div style="margin-top:8px;font-size:12.5px;color:var(--dim)">Tell your agent:
-      <i>“I'm in this Council. Store my constraints, then check every option and
-      propose or reject for me.”</i></div>
-      <div class="btns" style="margin-top:10px">
-        <button class="ghost" id="myround">Run my round without an agent</button>
-      </div></div>`;
+      are public; their reasons are not. <b>Your turn.</b></div>`
+      + agentHint()
+      + `<div class="btns" style="margin-top:10px">
+           <button class="ghost" id="myround">Or run my round without an agent</button>
+         </div>`;
+    wireHint();
     document.getElementById('myround').onclick = () => runRound(ME);
     return;
   }
