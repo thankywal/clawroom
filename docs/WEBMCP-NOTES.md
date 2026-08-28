@@ -1,0 +1,56 @@
+# Verified WebMCP surface
+
+Measured, not assumed. `public/smoke.html` is the diagnostic that produced this;
+it ships with the project so anyone can re-run it.
+
+Chrome 151 · macOS · https://council.jonsaw567.workers.dev
+Two runs: one with `chrome://flags/#enable-webmcp-testing`, one in a **clean
+profile with no flags**, relying only on the origin trial token. Identical
+results — which is the point: a judge does not have to configure anything.
+
+## Namespace
+
+Both are present; `document` is the one the spec settles on.
+
+    document.modelContext    yes
+    navigator.modelContext   yes
+
+Resolve once at startup and use the result everywhere:
+
+    const mc = document.modelContext || navigator.modelContext || null;
+
+## Methods
+
+    registerTool()    yes
+    getTools()        yes
+    executeTool()     yes
+    provideContext()  no
+    unregisterTool()  no      ← use an AbortSignal instead
+
+## Behaviour confirmed
+
+| | |
+|---|---|
+| `execute` returning a bare string | works |
+| `execute` returning `{content:[{type:'text',text}]}` | works |
+| `structuredContent` alongside `content` | works |
+| `annotations: { readOnlyHint, untrustedContentHint }` | accepted |
+| `execute(args, ctx)` second argument | delivered |
+| `registerTool(def, { signal })` then `abort()` | **unregisters** — `getTools()` went 5 → 4 |
+
+The last row is the load-bearing one for Council. There is no
+`unregisterTool()`, so a tool surface that changes with page state depends
+entirely on AbortSignal. The Chrome docs associate this with 153+; it works on
+151. Council registers its private-zone tools under one controller so the whole
+surface can be withdrawn at once.
+
+## Origin trial
+
+    origin   https://council.jonsaw567.workers.dev:443
+    feature  WebMCP
+    expiry   2026-11-17
+
+Delivered as a `<meta http-equiv="origin-trial">` tag in every page. Subdomain
+matching is unavailable here — `workers.dev` is on the Public Suffix List, so
+the token is bound to this exact origin. Third-party matching is not needed:
+Council's tools are registered by the page itself, on its own origin.
