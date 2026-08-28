@@ -62,7 +62,25 @@ function renderPrivate() {
     (chips.length
       ? `<div class="chips">${chips.join('')}</div>`
       : `<p class="empty">Nothing stored yet. Tell your agent what matters to you.</p>`) +
-    `<p class="empty" style="margin-top:12px">Your agent reads these to decide. The Council never sees them.</p>`;
+    `<p class="empty" style="margin-top:10px">Your agent reads these to decide.
+      The Council never sees them.</p>` + publicFootprint();
+}
+
+/* Everything the Council actually learned about you. The contrast with the
+ * panel above it is the entire argument, so it is shown side by side. */
+function publicFootprint() {
+  const mine = PUBLIC.verdicts[ME.id] || {};
+  const rows = Object.entries(mine);
+  if (!rows.length) return '';
+  return `<div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--line)">
+    <div style="font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+                color:var(--dimmer);font-weight:600;margin-bottom:7px">
+      🌐 What the Council learned about you</div>
+    <div class="chips">${rows.map(([id,v]) =>
+      `<span class="chip">${id.replace('opt_','#')} ${v.type==='propose'?'✓':'✗'}${
+        v.publicReason ? ' “'+v.publicReason+'”' : ''}</span>`).join('')}</div>
+    <p class="empty" style="margin-top:9px">Verdicts, never reasons.</p>
+  </div>`;
 }
 
 function renderCouncil() {
@@ -87,35 +105,54 @@ function renderCouncil() {
 
 function renderOutcome(a) {
   const el = document.getElementById('outcome');
-  const decided = Object.values(PUBLIC.verdicts).some(v => Object.keys(v).length);
-  if (!decided) {
-    el.innerHTML = `<div class="banner">No verdicts yet. Everyone must reveal their
-      constraints to find overlap — that is how group decisions work today.
+  const has = id => Object.keys(PUBLIC.verdicts[id] || {}).length > 0;
+  const othersIn = DEMO.some(d => has(d.id));
+  const iAmIn = has(ME.id);
+
+  /* Stage 1 — nobody has spoken. This is how group decisions work today. */
+  if (!othersIn && !iAmIn) {
+    el.innerHTML = `<div class="banner">Right now this is a spreadsheet. To find an
+      overlap everyone has to publish what they can and cannot do — budgets, dates,
+      reasons. That is the cost of deciding together today.
       <div class="btns" style="margin-top:10px">
-        <button class="primary" id="convene">Convene the demo participants</button>
-        <button class="ghost" id="myround">Run my round locally</button>
+        <button class="primary" id="convene">Convene the Council</button>
       </div></div>`;
-    document.getElementById('convene').onclick = () => { DEMO.forEach(runRound); };
+    document.getElementById('convene').onclick = () => DEMO.forEach(runRound);
+    return;
+  }
+
+  /* Stage 2 — the others have spoken, you have not. Your agent's turn. */
+  if (!iAmIn) {
+    el.innerHTML = `<div class="banner">Mya and Su have sent their agents. Their verdicts
+      are public; their reasons are not. <b>Your turn.</b>
+      <div style="margin-top:8px;font-size:12.5px;color:var(--dim)">Tell your agent:
+      <i>“I'm in this Council. Store my constraints, then check every option and
+      propose or reject for me.”</i></div>
+      <div class="btns" style="margin-top:10px">
+        <button class="ghost" id="myround">Run my round without an agent</button>
+      </div></div>`;
     document.getElementById('myround').onclick = () => runRound(ME);
     return;
   }
+
   if (a.consensus) {
     el.innerHTML = `<div class="banner ok">✓ <b>Consensus — ${a.consensus.option.label}</b>,
       ${a.consensus.option.start.slice(5)} → ${a.consensus.option.end.slice(5)},
-      $${a.consensus.option.price}. Every participant accepted. Humans confirm from here.</div>`;
+      $${a.consensus.option.price}. Every participant accepted, and nobody learned why
+      anyone else had said no.</div>`;
     return;
   }
+
   const near = a.nearest.find(n => n.rejected.includes(ME.id));
-  if (a.nearest.length && near) {
-    const opt = near.option, fit = checkFit(ME.id, opt.id);
-    const c = fit.concessions[0];
+  if (near) {
+    const opt = near.option, fit = checkFit(ME.id, opt.id), c = fit.concessions[0];
     const ask = c?.wouldFitIf.raiseBudgetTo ? `raise your ceiling to $${c.wouldFitIf.raiseBudgetTo}`
               : c?.wouldFitIf.allowDate     ? `allow ${c.wouldFitIf.allowDate}`
               : c?.wouldFitIf.allowTag      ? `accept ${c.wouldFitIf.allowTag}`
               : 'relax one constraint';
     el.innerHTML =
       `<div class="banner warn">No option works for everyone. <b>${opt.label}</b> is one
-        concession away — and you are the only blocker.</div>
+        concession away — and you are the only participant blocking it.</div>
        <div class="ask">
          <h3>🔒 Your agent is asking you</h3>
          <p>“If you ${ask}, the whole Council agrees on ${opt.label}.
@@ -136,8 +173,14 @@ function renderOutcome(a) {
       activity({actor:ME.id, tool:'declined concession', detail:'private line held', zone:'human'});
     return;
   }
-  el.innerHTML = `<div class="banner warn">No option satisfies everyone yet, and none is a
-    single concession away. Someone has to move — nobody has to say why.</div>`;
+
+  const other = a.nearest[0];
+  el.innerHTML = other
+    ? `<div class="banner warn"><b>${other.option.label}</b> is one concession away, and the
+        only blocker is ${other.rejected.map(i=>who(i).name).join(', ')}. Their agent is
+        asking them now. You will see the answer, not the reason.</div>`
+    : `<div class="banner warn">No option satisfies everyone, and none is a single
+        concession away. Someone has to move — nobody has to say why.</div>`;
 }
 
 /* ---------- a round: what one participant does when its human says go ---------- */
