@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Council · WebMCP smoke test</title>
+<!-- ORIGIN_TRIAL_TOKEN_SLOT: paste <meta http-equiv="origin-trial" content="..."> here once registered -->
+<style>
+  :root{
+    --bg:#0e1414; --panel:#152020; --line:#24393a;
+    --ink:#e6f2f1; --dim:#7f9a9a; --teal:#3fa9ac; --ok:#4ec9a0; --bad:#e2635f; --warn:#e0a44a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;padding:24px;max-width:900px;margin-inline:auto}
+  h1{font-size:18px;margin:0 0 2px;letter-spacing:.02em}
+  h1 span{color:var(--teal)}
+  .sub{color:var(--dim);margin:0 0 22px;font-size:12px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);margin:0 0 10px;font-weight:600}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed #1e2f30}
+  .row:last-child{border-bottom:0}
+  .k{color:var(--dim)}
+  .v{text-align:right;word-break:break-all}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  #log{background:#0a1010;border:1px solid var(--line);border-radius:8px;padding:10px;
+       height:220px;overflow:auto;font-size:12px;white-space:pre-wrap}
+  #flash{position:fixed;inset:0;pointer-events:none;background:var(--teal);opacity:0;transition:opacity .45s}
+  #flash.on{opacity:.14;transition:opacity .05s}
+  .hint{color:var(--dim);font-size:12px;margin-top:10px;line-height:1.6}
+  code{color:var(--teal)}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+
+<h1>Council <span>·</span> WebMCP smoke test</h1>
+<p class="sub">Day 0 diagnostic. Open this in Chrome 149+ (flag or origin trial) and in the ChatGPT desktop app browser, then ask your agent to call the tools.</p>
+
+<section><h2>Environment</h2><div id="env"></div></section>
+<section><h2>API surface</h2><div id="api"></div></section>
+<section><h2>Registration tests</h2><div id="reg"></div></section>
+<section><h2>Tools the agent can see</h2><div id="tools"></div></section>
+<section><h2>Log</h2><div id="log"></div>
+  <p class="hint">Ask your agent: <code>"call ping"</code> · <code>"echo hello"</code> · <code>"read the counter"</code> · <code>"call the temporary tool"</code></p>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = (m, cls='') => {
+  const t = new Date().toISOString().slice(11,23);
+  $('log').insertAdjacentHTML('beforeend', `<div class="${cls}">${t}  ${m}</div>`);
+  $('log').scrollTop = 1e9;
+};
+const row = (host, k, v, cls='') =>
+  $(host).insertAdjacentHTML('beforeend', `<div class="row"><span class="k">${k}</span><span class="v ${cls}">${v}</span></div>`);
+const yn = b => b ? ['yes','ok'] : ['no','bad'];
+
+function flash(){ const f=$('flash'); f.classList.add('on'); setTimeout(()=>f.classList.remove('on'),90); }
+
+/* ---------- 1. environment ---------- */
+row('env','origin', location.origin);
+row('env','secure context', ...yn(window.isSecureContext));
+row('env','user agent', navigator.userAgent.slice(0,70)+'…');
+const otMeta = document.querySelector('meta[http-equiv="origin-trial"]');
+row('env','origin-trial meta tag', ...(otMeta ? ['present','ok'] : ['absent (flag mode only)','warn']));
+
+/* ---------- 2. which namespace? ---------- */
+const onDoc = typeof document !== 'undefined' && 'modelContext' in document;
+const onNav = typeof navigator !== 'undefined' && 'modelContext' in navigator;
+row('api','document.modelContext', ...yn(onDoc));
+row('api','navigator.modelContext', ...yn(onNav));
+
+const mc = onDoc ? document.modelContext : (onNav ? navigator.modelContext : null);
+row('api','resolved namespace', mc ? (onDoc ? 'document' : 'navigator') : 'NONE — WebMCP unavailable', mc ? 'ok' : 'bad');
+
+if (mc) {
+  for (const m of ['registerTool','provideContext','getTools','executeTool','unregisterTool'])
+    row('api', `.${m}()`, ...yn(typeof mc[m] === 'function'));
+}
+
+/* ---------- 3. registration tests ---------- */
+const results = [];
+const mark = (name, ok, note='') => {
+  results.push({name, ok});
+  row('reg', name, (ok ? 'PASS' : 'FAIL') + (note ? ' — ' + note : ''), ok ? 'ok' : 'bad');
+};
+
+let counter = 0;
+
+async function run() {
+  if (!mc) { row('reg','(skipped)','WebMCP not available','bad'); return; }
+
+  // T1 — plain string return
+  try {
+    await mc.registerTool({
+      name: 'ping',
+      description: 'Health check. Returns the string "pong".',
+      inputSchema: { type:'object', properties:{}, additionalProperties:false },
+      execute: async () => { flash(); log('TOOL CALL  ping()','ok'); return 'pong'; }
+    });
+    mark('T1 register + string return', true);
+  } catch(e) { mark('T1 register + string return', false, e.message); }
+
+  // T2 — {content:[...]} return shape
+  try {
+    await mc.registerTool({
+      name: 'echo',
+      description: 'Echoes back the text you give it.',
+      inputSchema: {
+        type:'object',
+        properties:{ text:{ type:'string', description:'Text to echo back' } },
+        required:['text']
+      },
+      execute: async ({text}) => {
+        flash(); log('TOOL CALL  echo(' + JSON.stringify(text) + ')','ok');
+        return { content: [{ type:'text', text:`echo: ${text}` }] };
+      }
+    });
+    mark('T2 content[] return shape', true);
+  } catch(e) { mark('T2 content[] return shape', false, e.message); }
+
+  // T3 — annotations + structuredContent
+  try {
+    await mc.registerTool({
+      name: 'read_counter',
+      description: 'Reads the page counter. Read-only, changes nothing.',
+      inputSchema: { type:'object', properties:{}, additionalProperties:false },
+      annotations: { readOnlyHint: true, untrustedContentHint: false },
+      execute: async () => {
+        flash(); counter++; log('TOOL CALL  read_counter() -> ' + counter,'ok');
+        return {
+          content:[{ type:'text', text:`counter is ${counter}` }],
+          structuredContent:{ counter, unit:'calls' }
+        };
+      }
+    });
+    mark('T3 annotations + structuredContent', true);
+  } catch(e) { mark('T3 annotations + structuredContent', false, e.message); }
+
+  // T4 — AbortSignal registration (Chrome 153+); unregisters after 20s
+  const ac = new AbortController();
+  try {
+    await mc.registerTool({
+      name: 'temporary_tool',
+      description: 'Disappears 20 seconds after page load. Tests dynamic unregistration.',
+      inputSchema: { type:'object', properties:{}, additionalProperties:false },
+      execute: async () => { flash(); log('TOOL CALL  temporary_tool()','ok'); return 'still here'; }
+    }, { signal: ac.signal });
+    mark('T4 register with AbortSignal', true, 'auto-unregisters in 20s');
+    setTimeout(async () => {
+      ac.abort();
+      log('--- aborted temporary_tool, re-listing ---','warn');
+      await listTools();
+    }, 20000);
+  } catch(e) { mark('T4 register with AbortSignal', false, e.message); }
+
+  // T5 — execute(args, {signal}) second argument
+  try {
+    await mc.registerTool({
+      name: 'slow_task',
+      description: 'Waits 3 seconds then returns. Tests cancellation.',
+      inputSchema: { type:'object', properties:{}, additionalProperties:false },
+      execute: async (_args, ctx) => {
+        flash();
+        log('TOOL CALL  slow_task()  ctx=' + (ctx ? Object.keys(ctx).join(',') : 'undefined'),'ok');
+        await new Promise(r => setTimeout(r, 3000));
+        return 'done';
+      }
+    });
+    mark('T5 execute(args, ctx) registered', true);
+  } catch(e) { mark('T5 execute(args, ctx) registered', false, e.message); }
+
+  await listTools();
+  const pass = results.filter(r=>r.ok).length;
+  log(`=== ${pass}/${results.length} registration tests passed ===`, pass===results.length?'ok':'warn');
+}
+
+async function listTools(){
+  $('tools').innerHTML = '';
+  if (!mc || typeof mc.getTools !== 'function') { row('tools','getTools()','not available','bad'); return; }
+  try {
+    const list = await mc.getTools();
+    if (!list || !list.length) { row('tools','(empty)','no tools visible','warn'); return; }
+    for (const t of list) row('tools', t.name || '(unnamed)', (t.description||'').slice(0,60), 'ok');
+    log(`getTools() -> ${list.length} tool(s)`);
+  } catch(e) { row('tools','getTools()','threw: '+e.message,'bad'); }
+}
+
+log('smoke test loaded');
+run();
+</script>
+</body>
+</html>
