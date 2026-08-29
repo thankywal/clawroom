@@ -17,7 +17,16 @@ export function findItem(items: readonly WorkItem[], ref: unknown): WorkItem | u
   if (exact) return exact
   const key = loose(raw)
   if (!key) return undefined
-  return items.find(i => loose(i.id) === key)
+  const named = items.find(i => loose(i.id) === key)
     ?? items.find(i => loose(i.title) === key)
     ?? items.find(i => loose(i.title).includes(key) || key.includes(loose(i.title)))
+  if (named) return named
+
+  // Models guess ordinals constantly. Asked to work on the first thing on a
+  // board whose items are w_1 and w_2, they will pass post_1 or item 1 or #1
+  // with total confidence. If a reference is some word and a number, and the
+  // board has that many items, they mean the nth one.
+  const ordinal = /^[a-z_#\s]*?(\d{1,2})$/.exec(raw.toLowerCase().trim())
+  const n = ordinal?.[1] ? Number(ordinal[1]) : 0
+  return n >= 1 && n <= items.length ? items[n - 1] : undefined
 }
