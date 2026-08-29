@@ -119,3 +119,19 @@ button.small{font-size:12px;padding:4px 10px}
 .state.s-done{border-color:#2f6b52;color:var(--ok)}
 .state.s-blocked{border-color:#6b3230;color:var(--bad)}
 .zbody p{margin:0 0 8px;font-size:13.5px}
+
+/* agent chat */
+.chatzone #chat{padding:10px 14px;max-height:280px;overflow:auto}
+.line{padding:4px 0;font-size:13.5px;line-height:1.5}
+.line.you b{color:var(--teal);font-weight:600;margin-right:6px}
+.line.agent{color:var(--ink)}
+.line.note{color:var(--warn);font-size:12.5px}
+.line.call{display:flex;gap:9px;align-items:baseline;font-family:var(--mono);font-size:11.5px}
+.line.call .zn{flex:none;width:44px;color:var(--dimmer)}
+.line.call .what{color:var(--teal);font-weight:600}
+.line.call .det{color:var(--dim)}
+.line.call.pending .what{color:var(--warn)}
+.composer{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+.composer input{flex:1;font:inherit;font-size:13.5px;background:#0b1212;color:var(--ink);
+  border:1px solid var(--line2);border-radius:7px;padding:7px 10px}
+.composer input:focus{outline:none;border-color:var(--teal)}

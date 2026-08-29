@@ -14,6 +14,8 @@ import { settleApproval } from '../engine/tiers.js'
 import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
 import { roomById } from '../rooms/index.js'
+import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
+import { resolveModelContext } from '../engine/webmcp.js'
 
 const q = new URLSearchParams(location.search)
 const def: RoomDefinition = roomById(q.get('room'))
@@ -29,8 +31,30 @@ const store: RoomStore = createStore({
   def, roomKey, me: person, role: isSteward ? 'steward' : 'member',
 })
 
-const host = createToolHost()
+// Chat lines are the only thing on this page written from what a model said.
+// Tool chips are not: they come from onCall, which only fires when a tool
+// actually ran. A model claiming a publish it never called leaves a gap.
+type Line =
+  | { k: 'you'; text: string }
+  | { k: 'agent'; text: string }
+  | { k: 'tool'; name: string; tier: string; summary: string; pending: boolean }
+  | { k: 'note'; text: string }
+
+const chat: Line[] = []
+let thinking = false
+
+const host = createToolHost({
+  onCall: (r) => {
+    chat.push({
+      k: 'tool', name: r.name, tier: r.tier,
+      summary: r.outcome.summary ?? r.outcome.text.slice(0, 80),
+      pending: Boolean(r.outcome.pending),
+    })
+    render()
+  },
+})
 let surface: string[] = []
+let agent: Agent | null = null
 
 const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
 const el = (id: string) => document.getElementById(id)
@@ -123,6 +147,19 @@ function render(): void {
       </section>
     </div>
 
+    <section class="zone chatzone" style="margin-top:14px">
+      <div class="zhead">
+        <h2>Your agent</h2>
+        <span class="note">${host.available ? 'this conversation stays here' : 'WebMCP unavailable'}</span>
+      </div>
+      <div id="chat">${chat.length ? chat.map(chatLine).join('') : `<p class="empty">Ask for something. Try: ${esc(suggestion())}</p>`}</div>
+      <div class="composer">
+        <input id="say" placeholder="Tell your agent what to do" ${thinking ? 'disabled' : ''}>
+        <button class="primary" id="send" ${thinking ? 'disabled' : ''}>${thinking ? 'Working' : 'Send'}</button>
+        ${thinking ? '<button class="ghost" id="halt">Stop</button>' : ''}
+      </div>
+    </section>
+
     <section class="zone" style="margin-top:14px">
       <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
       <div id="feed">${s.events.length ? s.events.slice(-60).map(logRow).join('') : '<p class="empty">Nothing yet.</p>'}</div>
@@ -130,6 +167,9 @@ function render(): void {
 
   const feed = el('feed')
   if (feed) feed.scrollTop = feed.scrollHeight
+  const chatBox = el('chat')
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight
+  wireComposer()
 
   el('share')?.addEventListener('click', async () => {
     const url = `${location.origin}/room.html?room=${def.id}&r=${instance}`
@@ -149,11 +189,65 @@ function render(): void {
   }
 }
 
+function suggestion(): string {
+  return isSteward
+    ? 'What has happened in here, and is anything waiting on me?'
+    : 'Draft two options for the launch announcement, then submit the better one.'
+}
+
+function chatLine(l: Line): string {
+  if (l.k === 'you')   return `<div class="line you"><b>${esc(person.name)}</b> ${esc(l.text)}</div>`
+  if (l.k === 'agent') return `<div class="line agent">${esc(l.text)}</div>`
+  if (l.k === 'note')  return `<div class="line note">${esc(l.text)}</div>`
+  return `<div class="line call ${l.pending ? 'pending' : ''}">
+    <span class="zn">${esc(l.tier)}</span>
+    <span class="what">${esc(l.name)}</span>
+    <span class="det">${esc(l.summary)}</span>
+  </div>`
+}
+
+function wireComposer(): void {
+  const input = el('say') as HTMLInputElement | null
+  const send = () => {
+    const text = input?.value.trim()
+    if (!text || !agent || thinking) return
+    input!.value = ''
+    chat.push({ k: 'you', text })
+    thinking = true
+    render()
+    void agent.send(text)
+  }
+  el('send')?.addEventListener('click', send)
+  input?.addEventListener('keydown', e => { if ((e as KeyboardEvent).key === 'Enter') send() })
+  el('halt')?.addEventListener('click', () => agent?.stop())
+  if (thinking) return
+  input?.focus()
+}
+
 async function boot(): Promise<void> {
   document.title = `${def.title} — ClawRoom`
   store.subscribe(render)
   store.seedIfFirst(true)
   surface = await host.mount(def, { store, me: person, isSteward })
+
+  const mc = resolveModelContext()
+  if (mc) {
+    agent = createAgent({
+      mc, host,
+      specs: () => toolSpecs(def, store, isSteward),
+      system: () => systemPrompt(def, person, isSteward),
+      events: {
+        onAssistant: (text) => { chat.push({ k: 'agent', text }); render() },
+        onDone: (reason, detail) => {
+          thinking = false
+          if (reason === 'error') chat.push({ k: 'note', text: detail ?? 'The agent could not be reached.' })
+          if (reason === 'limit') chat.push({ k: 'note', text: 'Stopped after too many steps in one go.' })
+          render()
+        },
+      },
+    })
+  }
+
   render()
 }
 

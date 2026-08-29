@@ -1,9 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clawroom",
+  "main": "./worker/index.ts",
   "compatibility_date": "2026-08-28",
-  "assets": {
-    "directory": "./dist"
-  },
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
+  "ai": { "binding": "AI" },
   "observability": { "enabled": true }
 }
