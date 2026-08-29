@@ -48,6 +48,28 @@ export interface ToolContext {
   me: Person
   /** Steward tools see the whole room; member tools see their own work. */
   isSteward: boolean
+  /**
+   * True only on the replay pass, after a human approved a commit-tier call.
+   * A commit tool is called twice: once to describe what it would do, and
+   * again, in the approver's browser, to actually do it.
+   */
+  approved: boolean
+  /**
+   * The only legal way to change shared state. The engine hands work-tier
+   * tools, and the unapproved pass of commit-tier tools, a version that
+   * throws. The tier rule is therefore enforced by construction rather than
+   * by asking room authors to remember it.
+   */
+  put: (item: WorkItem) => void
+  /** Per member, per room, this browser only. Never synced, never logged. */
+  scratch: Scratch
+}
+
+/** Where work-tier tools keep their payload. localStorage under the hood. */
+export interface Scratch {
+  get: (key: string) => unknown
+  set: (key: string, value: unknown) => void
+  keys: () => string[]
 }
 
 /** The unit of work. A post, a homework problem, a support ticket, an order. */
@@ -91,6 +113,13 @@ export interface Approval {
   item?: ItemId
   describe: string
   at: number
+  /**
+   * Replayed into the tool when a human approves. Note what this implies:
+   * commit-tier arguments are public by construction, because approval
+   * happens in someone else's browser. That is the right semantics anyway,
+   * since committing is the act of making something public.
+   */
+  args: Record<string, unknown>
 }
 
 export interface RoomDefinition {

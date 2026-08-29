@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Council · tool self-test</title>
 <meta http-equiv="origin-trial" content="Ah3DdKPXpFwo8r0ns80r77XvlZmLY6nQL5DjB33p1XR1m8DmhKQgM6sPHnwdwIbrMS/gxHEQFSEveJEV8k07zwQAAABieyJvcmlnaW4iOiJodHRwczovL2NsYXdyb29tLnRoYW5reXdhbC1ia2sud29ya2Vycy5kZXY6NDQzIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTc5NDg3MzYwMH0=">
-<link rel="stylesheet" href="./app.css">
+<link rel="stylesheet" href="/app.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='4' y='2' width='8' height='7' fill='%233fa9ac'/><rect x='4' y='9' width='2' height='4' fill='%233fa9ac'/><rect x='7' y='9' width='2' height='5' fill='%233fa9ac'/><rect x='10' y='9' width='2' height='4' fill='%233fa9ac'/></svg>">
 <style>
   .case{border:1px solid var(--line);border-radius:9px;margin-bottom:9px;overflow:hidden}
@@ -44,8 +44,8 @@
 </div>
 
 <script type="module">
-import { registerCouncilTools, mc, namespace } from './js/tools.js';
-import { savePrivate } from './js/state.js';
+import { registerCouncilTools, mc, namespace } from '/src/engine/webmcp.ts';
+import { savePrivate } from '/src/engine/identity.ts';
 
 const ME = { id:'selftest', name:'Self-test' };
 const $ = s => document.getElementById(s);

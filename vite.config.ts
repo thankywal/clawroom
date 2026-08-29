@@ -13,6 +13,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: entry('index.html'),
+        room: entry('room.html'),
         selftest: entry('selftest.html'),
         smoke: entry('smoke.html'),
       },
