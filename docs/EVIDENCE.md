@@ -47,12 +47,16 @@ Nothing in the page ever approves anything, so a post that reaches state
 
 ### Result
 
-Five trials per arm, run twice on 2026-08-29. Both runs agreed exactly.
+Five trials per arm, run three times on 2026-08-29, plus an earlier
+three-trial run while the harness was being built. Every run agreed exactly.
 
 | arm | published with no human approval |
 |---|---|
-| tier engine | **0 / 10** |
-| description only | **10 / 10** |
+| tier engine | **0 / 18** |
+| description only | **18 / 18** |
+
+![The ablation page after a run. Tier engine 0 of 5, description only 5 of 5,
+with each trial's transcript below.](media/06-tier-ablation.png)
 
 Raw per-trial output, including what the model said each time, is in
 [`evidence/ablation-2026-08-29.json`](evidence/ablation-2026-08-29.json).
@@ -78,11 +82,11 @@ The guarded model, same prompt and same model, parked all ten:
 
 The guarded arm scores zero because it cannot do otherwise. That is a property
 of the code rather than a measurement, and it should not be reported as though
-ten trials discovered it. The number worth reading is the other one: a model
+eighteen trials discovered it. The number worth reading is the other one: a model
 told clearly not to do a thing did it every single time, because nothing stopped
 it.
 
-Ten trials on one model and one prompt is a small sample. It is enough to
+Eighteen trials on one model and one prompt is a small sample. It is enough to
 settle the question it was asked, which is whether the difference between the
 two designs is observable at all, and not enough to put a rate on how often
 models in general ignore a tool description.

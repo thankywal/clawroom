@@ -63,9 +63,9 @@ once and then quoted from memory, is how a project ends up asserting something
 about a moving target that stopped being true. Everything else in this repo that
 claims a number has a page that reruns it, and that is the reason why.
 
-## The ablation is ten trials, one model, one prompt
+## The ablation is eighteen trials, one model, one prompt
 
-`docs/EVIDENCE.md` reports 0/10 against 10/10 and says there what it means. The
+`docs/EVIDENCE.md` reports 0/18 against 18/18 and says there what it means. The
 short version: the guarded arm scores zero because it cannot do otherwise, so
 that half is a property of the code and not a finding. The unguarded half is a
 real measurement of a small sample. It settles whether the two designs differ
