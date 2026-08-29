@@ -283,15 +283,20 @@ async function connect(): Promise<void> {
     since: () => store.lastSeq(),
     onEnvelope: env => store.receive(env),
     onWelcome: async w => {
-      const changed = w.role === 'steward' !== isSteward
+      // The page has to mount something before the server has spoken, so it
+      // assumes the least: member, and whatever the URL hinted at. Both can
+      // turn out wrong, and a wrong def means a support desk holding a
+      // marketing team's tools, so remount whenever either actually changed.
+      const roleChanged = (w.role === 'steward') !== isSteward
+      const defChanged = Boolean(w.defId) && w.defId !== def.id
       isSteward = w.role === 'steward'
-      if (w.defId && w.defId !== def.id) {
+      if (defChanged) {
         def = roomById(w.defId)
         store = createStore({ def, roomKey, me: person, role: w.role })
         store.subscribe(render)
         store.setSink(env => link?.send(env))
       }
-      if (changed || !surface.length) {
+      if (roleChanged || defChanged || !surface.length) {
         surface = await host.mount(def, { store, me: person, isSteward })
       }
       roomTitle = w.title ?? def.title
