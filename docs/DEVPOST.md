@@ -95,6 +95,8 @@ Reported honestly: the guarded arm scores zero because it cannot do otherwise, w
 
 `/ablate.html` ships with the site, `npm run ablate` drives it headlessly, and the raw per-trial output is committed in `docs/evidence/`.
 
+A client that has never seen this code also drove a room. `scripts/foreign-agent.mjs` attaches from outside the browser, imports nothing from `src/`, and learns the room only through `getTools()`: name, description, and an `inputSchema` it has to parse from a string. It drafted twice, submitted, asked to publish, was parked, checked once, and reported that nothing had shipped. The client is mine, so this is not a third-party product; only its ignorance is guaranteed. It does show that the descriptions carry enough for a stranger, and that the surface is the standard one.
+
 `/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **10 of 10** against the deployed origin in a clean Chrome profile with no flags. Two of those cases test the claim rather than a function: one writes a sentinel sentence into a private draft and searches all of shared state for it, and the other calls publish, checks the board did not move, approves as a human, and only then expects the effect.
 
 ## What I found out about the ecosystem
@@ -119,7 +121,7 @@ Filming the product also surfaced four real bugs that reading the code would not
 
 ## What I know is still weak
 
-`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party agent has driven a room end to end, and the closest evidence is `/selftest` calling the tools with no agent at all. The ablation is twenty-eight trials on one model and one prompt.
+`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
 
 ## Taking it back to the spec
 

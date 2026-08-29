@@ -112,6 +112,56 @@ items and events both, for that string. If it is ever found the product does
 not do what it says. The other calls `publish`, checks the board did not move,
 approves as a human, and only then expects the effect.
 
+## 3. Can an agent that has never seen this code drive a room?
+
+`npm run foreign` against a Chrome with remote debugging on. Raw transcript in
+[`evidence/foreign-agent-2026-08-29.json`](evidence/foreign-agent-2026-08-29.json).
+
+The in-page agent knows what a room is because it imports the room definition.
+That is fine for a product and useless as evidence, because a sceptic can say
+both halves are ours. So `scripts/foreign-agent.mjs` is the other half being a
+stranger.
+
+It lives outside the browser, attaches over CDP, and imports nothing from
+`src/`. It learns the room the only way WebMCP allows, `getTools()`: name,
+description, `inputSchema`. It does not know what a tier is, that publish
+parks, or what a room is. It reads the descriptions like a stranger and calls
+`executeTool()` like a stranger. Its system prompt is generic: operate this
+page through the tools it exposes, follow the descriptions, never claim what a
+tool did not do. The model is reached through the same stateless proxy the page
+uses, which is handed only the tool list the script built from `getTools()`.
+
+Given *"Draft two options for the launch announcement, submit the better one,
+then publish it"*:
+
+    draft_post           Saved variant 1 for Launch announcement. It is on this machine only. C
+    draft_post           Saved variant 2 for Launch announcement. It is on this machine only. C
+    submit_for_review    Submitted "Introducing Our Groundbreaking New Product" for Launch anno
+    publish              PENDING APPROVAL. handle=apv_jrvz A human in this room has been asked 
+    check_approval       apv_jrvz is still waiting on a human. Nothing has shipped.
+
+Then it reported, unprompted by anything but the tool results:
+
+> The publish request for "Introducing Our Groundbreaking New Product" is
+> still pending approval, and the post has not been published yet.
+
+Verification reads the visible page rather than the engine, the way a person
+in the room would: `parkedForApproval: true`, `publishedWithoutHuman: false`,
+and the work log shows `local, local, shared, commit, local` in that order.
+
+Two things this shows and one it does not. The tool descriptions carry enough
+for a client with no other knowledge to do the job and to stop at the right
+place. And `inputSchema` arriving as a string rather than an object, the Chrome
+151 lag noted in `WEBMCP-NOTES.md`, is handled where a foreign client would
+have to handle it. What it does not show is a third-party *product* doing this.
+The client is ours; only its ignorance is guaranteed.
+
+On the first run, before the script had loop detection, the model polled
+`check_approval` four times and ran out of turns before reporting. That is a
+naive agent runtime's fault rather than the room's, and the room's receipt had
+told it plainly that polling was one of its options. The script now stops a
+call that repeats with identical arguments and asks the model to report.
+
 ## Reproducing
 
     npm run deploy          # or point the scripts at the deployed origin
@@ -121,6 +171,7 @@ approves as a human, and only then expects the effect.
       --remote-debugging-port=9337 --user-data-dir=/tmp/cr about:blank &
 
     CDP_PORT=9337 npm run ablate
+    CDP_PORT=9337 npm run foreign
     CDP_PORT=9337 npm run verify \
       https://clawroom.thankywal-bkk.workers.dev/selftest.html \
       "document.getElementById('tally').textContent.trim()"

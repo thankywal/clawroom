@@ -152,6 +152,11 @@ you without any setup.
   published with only the description. The guarded arm scores zero because it
   cannot do otherwise, so the number worth reading is the other one. Method and
   raw output in [docs/EVIDENCE.md](docs/EVIDENCE.md).
+- `scripts/foreign-agent.mjs` is an agent that has never seen this code. It
+  attaches from outside the browser, imports nothing from `src/`, learns the
+  room only through `getTools()`, and drives it through `executeTool()`. It
+  drafted twice, submitted, asked to publish, got parked, and reported that
+  nothing had shipped. Transcript in `docs/evidence/`.
 - `/selftest` calls every tool through `executeTool()` with no agent involved:
   **10/10** against the deployed origin in a clean Chrome profile with no flags.
   Two of those cases test the claim rather than a function. One writes a

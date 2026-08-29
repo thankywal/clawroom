@@ -32,7 +32,7 @@ The cost is that anyone holding a link is that role. There is no revocation, no
 rotation, and no way to remove a member. A steward link pasted into the wrong
 chat is a steward.
 
-## No third-party agent has driven this end to end
+## No third-party product has driven this end to end
 
 The site hosts its own agent, and the reason is documented rather than hidden:
 Chrome's Gemini side panel does not call WebMCP tools, and ChatGPT's site tools
@@ -40,11 +40,15 @@ want a paid Work plan, so without a hosted agent a visitor with no subscription
 could not see the loop at all. The origin trial explicitly covers agents hosted
 by the site.
 
-But it is still true that we have not watched a third-party agent complete a
-room task. The closest evidence we have is `/selftest`, which drives every tool
-through `document.modelContext.executeTool()` with no agent code whatsoever, so
-the tools are demonstrably on the standard surface and callable by anything
-that speaks it. That is not the same as having seen one do it.
+What we can now show is narrower than "any agent" and wider than "our agent".
+`scripts/foreign-agent.mjs` is a client that imports nothing from `src/`,
+attaches from outside the browser, learns the room only through `getTools()`,
+and drives it through `executeTool()`. It drafted, submitted, asked to publish,
+got parked, checked once and reported honestly (`docs/EVIDENCE.md`, section 3).
+So the descriptions are sufficient and the surface is genuinely the standard
+one. But the client is still ours. Only its ignorance is guaranteed. A
+third-party product such as ChatGPT's in-app browser has not been observed
+doing this, and that remains the honest gap.
 
 ## We got a WebMCP fact wrong and shipped it before checking
 

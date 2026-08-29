@@ -8,7 +8,8 @@
     "check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy",
     "verify": "node scripts/verify.mjs",
-    "ablate": "node scripts/ablate.mjs https://clawroom.thankywal-bkk.workers.dev/ablate.html?auto=1&n=5"
+    "ablate": "node scripts/ablate.mjs https://clawroom.thankywal-bkk.workers.dev/ablate.html?auto=1&n=5",
+    "foreign": "node scripts/foreign-agent.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
