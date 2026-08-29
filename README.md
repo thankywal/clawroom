@@ -4,6 +4,8 @@
 
 Live: https://clawroom.thankywal-bkk.workers.dev
 
+Film (2:12): https://youtu.be/Le4gWN3Ahu8
+
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
 ![A campaign room with four people in it. The work log shows Dan, Ella and Ava

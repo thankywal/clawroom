@@ -1,6 +1,8 @@
 **Live:** https://clawroom.thankywal-bkk.workers.dev
 Open it in Chrome and press **Open the demo room**. It puts you in a marketing room as the manager and opens a second window as Ella, one of your team, so both halves of the room are in front of you at once. No signup, no flags, no form to fill in. The origin trial token is served in the page.
 
+**Film (2:12):** https://youtu.be/Le4gWN3Ahu8
+
 **Also worth a click:** [`/ablate.html`](https://clawroom.thankywal-bkk.workers.dev/ablate.html) removes the enforcement engine and measures what happens. [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html) calls every tool with no agent at all.
 
 ## Inspiration

@@ -83,8 +83,7 @@ localhost.
 
 ## Still to do before you press Submit
 
-1. Upload `/Users/nandar/clawroom-video/out/clawroom.mp4` to YouTube as
-   **public or unlisted**, then paste the URL into the project's video field.
-   The rules require a public YouTube video under 3 minutes. Ours is 2:13.
+1. The film is on YouTube at https://youtu.be/Le4gWN3Ahu8 and the URL is on
+   the Devpost project. Check it is set to **public**, not unlisted.
 2. Rotate the Devpost access token and refresh token that were pasted into the
    chat, since they are now in a session log on disk.
