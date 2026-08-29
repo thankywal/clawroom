@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Council · tool self-test</title>
+<title>ClawRoom tool self-test</title>
 <meta http-equiv="origin-trial" content="Ah3DdKPXpFwo8r0ns80r77XvlZmLY6nQL5DjB33p1XR1m8DmhKQgM6sPHnwdwIbrMS/gxHEQFSEveJEV8k07zwQAAABieyJvcmlnaW4iOiJodHRwczovL2NsYXdyb29tLnRoYW5reXdhbC1ia2sud29ya2Vycy5kZXY6NDQzIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTc5NDg3MzYwMH0=">
 <link rel="stylesheet" href="/app.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='4' y='2' width='8' height='7' fill='%233fa9ac'/><rect x='4' y='9' width='2' height='4' fill='%233fa9ac'/><rect x='7' y='9' width='2' height='5' fill='%233fa9ac'/><rect x='10' y='9' width='2' height='4' fill='%233fa9ac'/></svg>">
@@ -15,17 +15,17 @@
   .ch .zn{color:var(--dimmer);font-size:11px}
   .cb{padding:9px 12px;font-family:var(--mono);font-size:11.5px;color:var(--dim);
       white-space:pre-wrap;word-break:break-word;background:#0b1212}
-  .cb b{color:var(--ink);font-weight:500}
   .verdict{font-weight:700}
   .verdict.p{color:var(--ok)} .verdict.f{color:var(--bad)}
+  .dim{color:var(--dim)}
   #tally{font-family:var(--mono);font-size:14px;padding:12px 14px;border-radius:9px;
          border:1px solid var(--line2);background:var(--panel);margin-bottom:16px}
 </style>
 </head>
 <body>
-<div class="wrap" style="max-width:820px">
+<div class="wrap" style="max-width:840px">
   <header>
-    <svg width="30" height="30" viewBox="0 0 16 16"><g fill="#3fa9ac">
+    <svg width="30" height="30" viewBox="0 0 16 16" aria-hidden="true"><g fill="#3fa9ac">
       <rect x="4" y="2" width="8" height="6.6"/>
       <rect x="1" y="4.6" width="1.5" height="3.2"/><rect x="2.5" y="6.2" width="1.6" height="1.6"/>
       <rect x="13.5" y="4.6" width="1.5" height="3.2"/><rect x="11.9" y="6.2" width="1.6" height="1.6"/>
@@ -35,107 +35,14 @@
     <rect x="8.8" y="4.3" width="1.3" height="1.3" fill="#0d1313"/></svg>
     <h1>Tool self-test</h1>
   </header>
-  <p class="tag" style="margin-left:42px">Every Council tool, invoked through
-    <b>document.modelContext.executeTool()</b>, no agent involved. If these pass,
-    the tools an agent would call are working.</p>
+  <p class="tag" style="margin-left:42px">Every ClawRoom tool, invoked through
+    <b>document.modelContext.executeTool()</b> with no agent involved. Two of these
+    check the product's claim rather than a function: that a private draft never
+    reaches shared state, and that a commit changes nothing until a person approves.</p>
 
-  <div id="tally">running…</div>
+  <div id="tally">running</div>
   <div id="cases"></div>
 </div>
-
-<script type="module">
-import { registerCouncilTools, mc, namespace } from '/src/engine/webmcp.ts';
-import { savePrivate } from '/src/engine/identity.ts';
-
-const ME = { id:'selftest', name:'Self-test' };
-const $ = s => document.getElementById(s);
-
-/* the same constraints the demo seeds for a visitor */
-savePrivate(ME.id, {
-  hard:[{id:'c_budget', type:'maxTotal', value:750}],
-  soft:[{id:'s_direct', type:'prefer', value:'direct', weight:.7}]
-});
-
-const CASES = [
-  { zone:'private', name:'remember_my_constraints',
-    args:{ hard:[{id:'c_budget',type:'maxTotal',value:750}],
-           soft:[{id:'s_direct',type:'prefer',value:'direct',weight:.7}] },
-    want: r => /Stored locally: 1 hard, 1 soft/.test(r.text) },
-  { zone:'private', name:'get_my_constraints', args:{},
-    want: r => r.structured?.hard?.[0]?.type === 'maxTotal' },
-  { zone:'private', name:'check_fit', args:{ optionId:'opt_08' },
-    want: r => r.structured?.feasible === false
-            && r.structured?.blockers?.[0] === 'c_budget'
-            && r.structured?.concessions?.[0]?.wouldFitIf?.raiseBudgetTo === 760 },
-  { zone:'private', name:'check_fit', args:{ optionId:'opt_01' },
-    want: r => r.structured?.feasible === true },
-  { zone:'public',  name:'list_options', args:{ maxPrice:700 },
-    want: r => r.structured?.options?.length === 2 && r.structured.options.every(o => o.price <= 700) },
-  { zone:'public',  name:'propose', args:{ optionId:'opt_01' },
-    want: r => /Proposed opt_01/.test(r.text) },
-  { zone:'public',  name:'reject', args:{ optionId:'opt_05', publicReason:'above what I can do' },
-    want: r => /Rejected opt_05/.test(r.text) },
-  { zone:'public',  name:'get_council_state', args:{},
-    want: r => r.structured?.verdicts?.selftest?.opt_01?.type === 'propose' },
-];
-
-/* executeTool() hands back the result envelope as a JSON *string*, not an
- * object, so unwrapping is two parses deep: envelope, then the tool's own
- * JSON payload inside content[].text. */
-function unwrap(raw) {
-  let env = raw;
-  if (typeof env === 'string') { try { env = JSON.parse(env); } catch { return { text: raw, structured: null }; } }
-  const text = env?.content?.map(c => c.text).join('')
-            ?? (typeof raw === 'string' ? raw : JSON.stringify(raw));
-  let structured = env?.structuredContent ?? null;
-  if (!structured) { try { structured = JSON.parse(text); } catch {} }
-  return { text, structured };
-}
-
-let pass = 0;
-function report(c, ok, detail) {
-  if (ok) pass++;
-  $('cases').insertAdjacentHTML('beforeend', `
-    <div class="case">
-      <div class="ch">
-        <span><span class="nm">${c.name}</span>
-          <span class="zn">${c.zone === 'private' ? '🔒 local' : '🌐 shared'}</span></span>
-        <span class="verdict ${ok?'p':'f'}">${ok?'PASS':'FAIL'}</span>
-      </div>
-      <div class="cb"><b>in </b>${JSON.stringify(c.args)}
-<b>out</b> ${detail}</div>
-    </div>`);
-}
-
-window.addEventListener('error', e =>
-  $('tally').innerHTML = '<span class="verdict f">script error</span> ' + e.message);
-window.addEventListener('unhandledrejection', e =>
-  $('tally').innerHTML = '<span class="verdict f">unhandled rejection</span> ' + e.reason);
-
-(async () => {
- try {
-  if (!mc) { $('tally').innerHTML = '<span class="verdict f">WebMCP unavailable</span>'; return; }
-  await registerCouncilTools({ me: ME, onActivity: () => {} });
-  const tools = await mc.getTools();
-
-  for (const c of CASES) {
-    const tool = tools.find(t => t.name === c.name);
-    if (!tool) { report(c, false, 'tool not registered'); continue; }
-    try {
-      const out = unwrap(await mc.executeTool(tool, JSON.stringify(c.args)));
-      report(c, !!c.want(out), (out.text || '').slice(0, 220));
-    } catch (e) { report(c, false, 'threw: ' + e.message); }
-  }
-
-  $('tally').innerHTML =
-    `<span class="verdict ${pass===CASES.length?'p':'f'}">${pass}/${CASES.length} passed</span>
-     <span style="color:var(--dim)"> · ${tools.length} tools registered on ${namespace}.modelContext</span>`;
-  window.__selftest = { pass, total: CASES.length };
- } catch (e) {
-  $('tally').innerHTML = '<span class="verdict f">threw</span> ' + (e && e.message || e);
-  window.__selftest = { error: String(e && e.message || e) };
- }
-})();
-</script>
+<script type="module" src="/src/ui/selftest.ts"></script>
 </body>
 </html>
