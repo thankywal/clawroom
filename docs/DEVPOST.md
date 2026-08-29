@@ -113,6 +113,14 @@ Filming the product also surfaced four real bugs that reading the code would not
 
 `docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party agent has driven a room end to end, and the closest evidence is `/selftest` calling the tools with no agent at all. The ablation is eighteen trials on one model and one prompt.
 
+## Taking it back to the spec
+
+The approval mechanic is not just this project's convention, so I took it to the group that is designing the real thing. [webmcp#165](https://github.com/webmachinelearning/webmcp/issues/165) is the open discussion on human-in-the-loop, where `requestUserInteraction()` has been repurposed into a `requestUserInput()` with interactive, form and url modes, and one open question is what those flows look like for in-page agents.
+
+[My comment there](https://github.com/webmachinelearning/webmcp/issues/165#issuecomment-5462267165) argues that elicitation and authorization have different latency and want different shapes. Elicitation is the person in front of you supplying one missing input in seconds, and a blocking call is right for it. Authorization is a *different* person consenting on their own schedule, where the honest latency is minutes to hours, and holding `execute()` open across that is not a slow promise but an abandoned one. It also carries the ablation numbers, because the argument that matters to a spec is that a guarantee written in prose the model reads is not a guarantee.
+
+The same comment reports the two implementation lag findings, since a client typed straight from the current spec breaks on both today.
+
 ## What's next
 
 The approval mechanic wants to be a spec proposal rather than one project's convention: a tier declared on the tool, a resolution that returns a handle instead of blocking, and a standard way to ask whether the handle has settled.
