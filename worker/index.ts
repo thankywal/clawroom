@@ -7,6 +7,7 @@
 // is a different thing entirely, built from tool calls rather than words.
 
 import { complete, type AgentMsg, type AgentToolSpec } from './llm.js'
+export { RoomDO } from './room-do.js'
 
 const MAX_BODY = 32 * 1024
 const MAX_MESSAGES = 40
@@ -44,6 +45,16 @@ export default {
       const debug = url.searchParams.has('debug')
       const reply = await complete(env, { messages, tools }, debug)
       return json(reply)
+    }
+
+    // /api/room/<defId>/<instance>/(ws|sync). The Worker does not parse the
+    // room key beyond using it to pick a Durable Object; it never learns what
+    // kind of room it is.
+    const room = url.pathname.match(/^\/api\/room\/([^/]+)\/([^/]+)\/(ws|sync)$/)
+    if (room) {
+      const [, defId, instance] = room
+      const id = env.ROOM.idFromName(`${defId}/${instance}`)
+      return env.ROOM.get(id).fetch(req)
     }
 
     return env.ASSETS.fetch(req)

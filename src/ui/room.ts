@@ -13,21 +13,22 @@ import { createToolHost, namespaceName } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
 import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
-import { roomById } from '../rooms/index.js'
+import { roomById, roomList } from '../rooms/index.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { resolveModelContext } from '../engine/webmcp.js'
+import { connectRoom, type Status, type Transport } from '../sync/client.js'
 
 const q = new URLSearchParams(location.search)
-const def: RoomDefinition = roomById(q.get('room'))
 const instance = q.get('r') ?? 'demo'
 const isSteward = q.get('as') === 'steward'
-const roomKey = `${def.id}/${instance}`
 
 const person: Person = isSteward
   ? { ...me(), name: me().name, colour: '#a980e0' }
   : me()
 
-const store: RoomStore = createStore({
+let def: RoomDefinition = roomById(q.get('room'))
+let roomKey = `${def.id}/${instance}`
+let store: RoomStore = createStore({
   def, roomKey, me: person, role: isSteward ? 'steward' : 'member',
 })
 
@@ -55,6 +56,8 @@ const host = createToolHost({
 })
 let surface: string[] = []
 let agent: Agent | null = null
+let link: Transport | null = null
+let linkStatus: Status = 'connecting'
 
 const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
 const el = (id: string) => document.getElementById(id)
@@ -113,11 +116,17 @@ function render(): void {
       <span class="pill"><i style="background:${person.colour}"></i>${esc(person.name)}</span>
       <span class="pill">${esc(isSteward ? def.stewardRole : def.memberRole)}</span>
       <span class="pill">${esc(def.title)}</span>
+      <select id="switch" aria-label="Switch room">
+        ${roomList().map(r => `<option value="${r.id}" ${r.id === def.id ? 'selected' : ''}>${esc(r.title)}</option>`).join('')}
+      </select>
       <button class="ghost small" id="share">Copy invite link</button>
       <span class="status ${host.available ? 'live' : ''}">${
         host.available
           ? `${surface.length} tools on ${namespaceName()}.modelContext`
           : 'WebMCP unavailable, enable chrome://flags/#enable-webmcp-testing'
+      }</span>
+      <span class="status ${linkStatus === 'open' ? 'live' : ''}">${
+        linkStatus === 'open' ? `live, ${s.members.length + 1} in the room` : linkStatus
       }</span>
     </div>
 
@@ -180,6 +189,10 @@ function render(): void {
 
   el('wipe')?.addEventListener('click', () => { clearPrivate(roomKey, person.id); render() })
 
+  el('switch')?.addEventListener('change', e => {
+    void switchRoom((e.target as HTMLSelectElement).value)
+  })
+
   for (const b of Array.from(mount.querySelectorAll<HTMLElement>('[data-ok],[data-no]'))) {
     b.addEventListener('click', () => {
       const id = b.dataset['ok'] ?? b.dataset['no']
@@ -224,10 +237,47 @@ function wireComposer(): void {
   input?.focus()
 }
 
-async function boot(): Promise<void> {
+/**
+ * Switching rooms without a reload. The order matters: stop the agent, drop
+ * the connection, then wait for the old tool surface to actually go before
+ * registering the new one. There is no unregisterTool in the API, so the
+ * AbortController inside the host is the only thing that can take a surface
+ * down, and it is what makes this possible at all.
+ */
+async function switchRoom(id: string): Promise<void> {
+  if (id === def.id) return
+  agent?.stop()
+  link?.close()
+  link = null
+  await host.unmount()
+
+  def = roomById(id)
+  roomKey = `${def.id}/${instance}`
+  chat.length = 0
+  thinking = false
+  store = createStore({ def, roomKey, me: person, role: isSteward ? 'steward' : 'member' })
+
+  const url = new URL(location.href)
+  url.searchParams.set('room', def.id)
+  history.pushState({}, '', url)
+
+  await connect()
+  render()
+}
+
+async function connect(): Promise<void> {
   document.title = `${def.title} — ClawRoom`
   store.subscribe(render)
-  store.seedIfFirst(true)
+
+  link = connectRoom({
+    roomKey,
+    since: () => store.lastSeq(),
+    onEnvelope: env => store.receive(env),
+    onFirst: first => store.seedIfFirst(first),
+    onStatus: st => { linkStatus = st; render() },
+  })
+  store.setSink(env => link?.send(env))
+
   surface = await host.mount(def, { store, me: person, isSteward })
 
   const mc = resolveModelContext()
@@ -247,7 +297,10 @@ async function boot(): Promise<void> {
       },
     })
   }
+}
 
+async function boot(): Promise<void> {
+  await connect()
   render()
 }
 

@@ -135,3 +135,7 @@ button.small{font-size:12px;padding:4px 10px}
 .composer input{flex:1;font:inherit;font-size:13.5px;background:#0b1212;color:var(--ink);
   border:1px solid var(--line2);border-radius:7px;padding:7px 10px}
 .composer input:focus{outline:none;border-color:var(--teal)}
+
+select{font:inherit;font-size:12px;background:var(--panel);color:var(--ink);
+  border:1px solid var(--line2);border-radius:20px;padding:4px 10px}
+select:hover{border-color:var(--teal)}
