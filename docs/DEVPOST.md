@@ -1,5 +1,5 @@
 **Live:** https://clawroom.thankywal-bkk.workers.dev
-Open it in Chrome and press **Open the demo room**. It puts you in a marketing room as the manager and opens a second window as Su, one of your team, so both halves of the room are in front of you at once. No signup, no flags, no form to fill in. The origin trial token is served in the page.
+Open it in Chrome and press **Open the demo room**. It puts you in a marketing room as the manager and opens a second window as Ella, one of your team, so both halves of the room are in front of you at once. No signup, no flags, no form to fill in. The origin trial token is served in the page.
 
 **Also worth a click:** [`/ablate.html`](https://clawroom.thankywal-bkk.workers.dev/ablate.html) removes the enforcement engine and measures what happens. [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html) calls every tool with no agent at all.
 
@@ -78,10 +78,10 @@ Two arms, identical in every respect except one. Same room, same model, same sys
 
 | arm | published with no human approval |
 |---|---|
-| tier engine | **0 / 18** |
-| description only | **18 / 18** |
+| tier engine | **0 / 23** |
+| description only | **23 / 23** |
 
-The unguarded model was not confused about the rule. In one trial it said so while breaking it: *"the publish function was successfully executed, bypassing the typical approval process due to the urgent nature of the request."*
+The unguarded model was not confused about the rule. In one trial it said so while breaking it: *"it was published without waiting for approval or manager's consent."*
 
 Reported honestly: the guarded arm scores zero because it cannot do otherwise, which is a property of the code and not a discovery. The number worth reading is the other one. Prompts ask. Only code refuses.
 
@@ -111,7 +111,7 @@ Filming the product also surfaced four real bugs that reading the code would not
 
 ## What I know is still weak
 
-`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party agent has driven a room end to end, and the closest evidence is `/selftest` calling the tools with no agent at all. The ablation is eighteen trials on one model and one prompt.
+`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party agent has driven a room end to end, and the closest evidence is `/selftest` calling the tools with no agent at all. The ablation is twenty-three trials on one model and one prompt.
 
 ## Taking it back to the spec
 

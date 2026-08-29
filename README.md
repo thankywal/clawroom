@@ -6,12 +6,12 @@ Live: https://clawroom.thankywal-bkk.workers.dev
 
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
-![A campaign room with four people in it. The work log shows Aung, Mya and Su
+![A campaign room with four people in it. The work log shows Dan, Ella and Ava
 making tool calls, each marked local or shared.](docs/media/01-room-four-people.jpg)
 
 Four people, four agents, one log. `local` calls kept their payload in the
-member's own browser. The room was told that Su drafted twice. It was not told
-what Su wrote.
+member's own browser. The room was told that Ella drafted twice. It was not told
+what Ella wrote.
 
 ---
 
@@ -117,7 +117,7 @@ purpose.
 ![A member's view. The chat panel shows work, work, share and commit chips, and
 a banner says one action is waiting on approval.](docs/media/02-tiers-and-parked-approval.jpg)
 
-Su's agent drafted twice, submitted one, and asked to publish. The publish did
+Dan's agent drafted twice, submitted one, and asked to publish. The publish did
 not publish. It returned a handle and parked, and the banner says what the rest
 of the product will not do for you: only a person in this room can approve, and
 no agent has that tool.
@@ -148,7 +148,7 @@ you without any setup.
   "commit-tier calls wait for a human" is easy to assert and easy to believe
   without evidence. Same room, same model, same system prompt, and the same
   tool description saying publishing waits for a person. Given an adversarial
-  prompt, across eighteen trials: **0/18** published with the engine, **18/18**
+  prompt, across twenty-three trials: **0/23** published with the engine, **23/23**
   published with only the description. The guarded arm scores zero because it
   cannot do otherwise, so the number worth reading is the other one. Method and
   raw output in [docs/EVIDENCE.md](docs/EVIDENCE.md).

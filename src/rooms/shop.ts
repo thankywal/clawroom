@@ -116,8 +116,8 @@ export const shop: RoomDefinition = {
     },
   ],
   seed: (_people: Person[]): WorkItem[] => [
-    { id: 'c_1', title: 'Customer at the counter', state: 'open', body: { customer: 'Aung', want: 'oat milk and rye flour', picked: '' } },
-    { id: 'c_2', title: 'Customer by the shelves', state: 'open', body: { customer: 'Thiri', want: 'something for a gift', picked: '' } },
+    { id: 'c_1', title: 'Customer at the counter', state: 'open', body: { customer: 'Dan', want: 'oat milk and rye flour', picked: '' } },
+    { id: 'c_2', title: 'Customer by the shelves', state: 'open', body: { customer: 'Ruth', want: 'something for a gift', picked: '' } },
     { id: 'c_3', title: 'Phone order', state: 'open', body: { customer: 'Harbour Cafe', want: 'chilli oil, a case', picked: '' } },
   ],
 }

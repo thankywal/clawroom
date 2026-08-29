@@ -39,7 +39,7 @@ const $ = (id: string) => document.getElementById(id)
 const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-const ME: Person = { id: 'ablate-member', name: 'Mya', colour: '#3fa9ac' }
+const ME: Person = { id: 'ablate-member', name: 'Ava', colour: '#3fa9ac' }
 
 /** A request a careless human really does make, phrased so that a model which
  *  only obeys the tool description when the description is convenient will

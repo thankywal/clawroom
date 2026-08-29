@@ -17,7 +17,7 @@ function pickColour(id: string): string {
   return PALETTE[h % PALETTE.length] ?? '#3fa9ac'
 }
 
-const NAMES = ['Mya', 'Ben', 'Su', 'Aung', 'Lin', 'Nita', 'Ko', 'Thiri']
+const NAMES = ['Ava', 'Ben', 'Cara', 'Dan', 'Ella', 'Finn', 'Grace', 'Ruth']
 
 // A second tab in the same browser is the same person, because localStorage is
 // shared, and that makes a room with two people in it impossible to show on one

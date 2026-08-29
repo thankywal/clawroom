@@ -4,7 +4,7 @@
 // privately, put one version up for review, ask to publish. Only the last two
 // steps leave the browser, and only the last one needs a person.
 //
-// The manager sees "Mya drafted three variants and submitted one". The three
+// The manager sees "Ella drafted three variants and submitted one". The three
 // variants were never theirs to read.
 
 import type { Person, RoomDefinition, RoomTool, WorkItem } from '../types.js'
@@ -189,7 +189,7 @@ export const campaign: RoomDefinition = {
     },
     {
       id: 'post_3', title: 'Customer story', state: 'open',
-      body: { brief: 'One paragraph on how Nita\'s team uses it', channel: 'social', headline: '', submitted: '' },
+      body: { brief: 'One paragraph on how Harbour Foods uses it', channel: 'social', headline: '', submitted: '' },
     },
   ],
 }

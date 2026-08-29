@@ -73,8 +73,8 @@ function render(): void {
       <div class="zhead"><h2>See it running</h2><span class="note">nothing to fill in</span></div>
       <div class="zbody">
         <p class="demoline">Opens a marketing room with work already on the board. You land
-          as the manager, and a second window opens as Su, one of your team, so both halves
-          of the room are in front of you. Ask Su's agent to draft and submit something,
+          as the manager, and a second window opens as Ella, one of your team, so both halves
+          of the room are in front of you. Ask Ella's agent to draft and submit something,
           then watch your log fill and an approval arrive.</p>
         <div class="btns">
           <button class="primary" id="demo">Open the demo room</button>
@@ -140,7 +140,7 @@ function render(): void {
       )
       const meta = await roomMeta(room.roomId, room.secret)
       if (second) {
-        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Su`
+        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella`
         else second.close()
       }
       location.href = roomLink(room.roomId, room.secret)

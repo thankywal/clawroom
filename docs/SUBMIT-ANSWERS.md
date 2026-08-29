@@ -25,11 +25,11 @@ in every page.
 
 Open https://clawroom.thankywal-bkk.workers.dev in Chrome and press **Open the
 demo room**. You land in a marketing room as the manager, and a second window
-opens as Su, one of your team. In Su's window, type into the agent box:
+opens as Ella, one of your team. In Ella's window, type into the agent box:
 
     Draft two options for the launch announcement, submit the better one, then publish it.
 
-Watch Su's agent draft privately, submit one version, and ask to publish. The
+Watch Ella's agent draft privately, submit one version, and ask to publish. The
 publish will not publish. It returns a handle and parks. Switch to the manager
 window and approve it.
 

@@ -125,7 +125,7 @@ export const support: RoomDefinition = {
   ],
   seed: (_people: Person[]): WorkItem[] => [
     { id: 't_401', title: 'Ticket 401', state: 'open', body: { customer: 'Harbour Foods', problem: 'Exports time out every morning', reply: '' } },
-    { id: 't_402', title: 'Ticket 402', state: 'open', body: { customer: 'Lin & Co', problem: 'Cannot connect from the new office', reply: '' } },
-    { id: 't_403', title: 'Ticket 403', state: 'open', body: { customer: 'Nita Studio', problem: 'Charged twice in August', reply: '' } },
+    { id: 't_402', title: 'Ticket 402', state: 'open', body: { customer: 'Bell & Co', problem: 'Cannot connect from the new office', reply: '' } },
+    { id: 't_403', title: 'Ticket 403', state: 'open', body: { customer: 'Atlas Studio', problem: 'Charged twice in August', reply: '' } },
   ],
 }
