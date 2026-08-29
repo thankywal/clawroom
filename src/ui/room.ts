@@ -115,7 +115,6 @@ function render(): void {
     <div class="bar">
       <span class="pill"><i style="background:${person.colour}"></i>${esc(person.name)}</span>
       <span class="pill">${esc(isSteward ? def.stewardRole : def.memberRole)}</span>
-      <span class="pill">${esc(def.title)}</span>
       <select id="switch" aria-label="Switch room">
         ${roomList().map(r => `<option value="${r.id}" ${r.id === def.id ? 'selected' : ''}>${esc(r.title)}</option>`).join('')}
       </select>
@@ -126,7 +125,7 @@ function render(): void {
           : 'WebMCP unavailable, enable chrome://flags/#enable-webmcp-testing'
       }</span>
       <span class="status ${linkStatus === 'open' ? 'live' : ''}">${
-        linkStatus === 'open' ? `live, ${s.members.length + 1} in the room` : linkStatus
+        linkStatus === 'open' ? `live, ${s.members.length} in the room` : linkStatus
       }</span>
     </div>
 
@@ -134,40 +133,42 @@ function render(): void {
 
     ${fired.length ? `<div class="banner warn">${fired.map(f => `<b>${esc(f.label)}.</b> ${esc(f.text)}`).join('<br>')}</div>` : ''}
 
-    ${s.approvals.length ? s.approvals.map(approvalRow).join('') : ''}
+    ${s.approvals.map(approvalRow).join('')}
 
     <div class="grid">
+      <div>
+        <section class="zone priv chatzone">
+          <div class="zhead">
+            <h2>Your agent</h2>
+            <span class="note">${host.available ? 'this conversation stays here' : 'WebMCP unavailable'}</span>
+          </div>
+          <div id="chat">${chat.length ? chat.map(chatLine).join('') : `<p class="empty">Ask for something. Try: ${esc(suggestion())}</p>`}</div>
+          <div class="composer">
+            <input id="say" placeholder="Tell your agent what to do" ${thinking ? 'disabled' : ''}>
+            <button class="primary" id="send" ${thinking ? 'disabled' : ''}>${thinking ? 'Working' : 'Send'}</button>
+            ${thinking ? '<button class="ghost" id="halt">Stop</button>' : ''}
+          </div>
+        </section>
+
+        <section class="zone priv" style="margin-top:14px">
+          <div class="zhead"><h2>On this machine</h2><span class="note">never synced</span></div>
+          <div class="zbody">
+            <p>${drafts ? `${drafts} private working file${drafts > 1 ? 's' : ''}.` : 'Nothing private yet.'}</p>
+            <p class="empty">Work-tier tools keep their payload here. The room gets a summary
+              line and nothing else, and no tool in this engine can return it.</p>
+            ${drafts ? '<div class="btns"><button class="ghost small" id="wipe">Delete everything the room never had</button></div>' : ''}
+          </div>
+        </section>
+      </div>
+
       <section class="zone">
-        <div class="zhead"><h2>The board</h2><span class="note">everyone sees this</span></div>
+        <div class="zhead"><h2>${esc(def.title)}</h2><span class="note">everyone in the room sees this</span></div>
         <div class="zbody">
           <table><thead><tr><th>Item</th><th>Brief</th><th>State</th><th>Owner</th></tr></thead>
           <tbody>${s.items.map(boardRow).join('')}</tbody></table>
         </div>
       </section>
-
-      <section class="zone priv">
-        <div class="zhead"><h2>On this machine</h2><span class="note">never synced</span></div>
-        <div class="zbody">
-          <p>${drafts ? `${drafts} private working file${drafts > 1 ? 's' : ''}.` : 'Nothing private yet.'}</p>
-          <p class="empty">Work-tier tools keep their payload here. The room gets a summary
-            line and nothing else, and no tool in the engine can return this.</p>
-          ${drafts ? '<div class="btns"><button class="ghost small" id="wipe">Delete everything the room never had</button></div>' : ''}
-        </div>
-      </section>
     </div>
-
-    <section class="zone chatzone" style="margin-top:14px">
-      <div class="zhead">
-        <h2>Your agent</h2>
-        <span class="note">${host.available ? 'this conversation stays here' : 'WebMCP unavailable'}</span>
-      </div>
-      <div id="chat">${chat.length ? chat.map(chatLine).join('') : `<p class="empty">Ask for something. Try: ${esc(suggestion())}</p>`}</div>
-      <div class="composer">
-        <input id="say" placeholder="Tell your agent what to do" ${thinking ? 'disabled' : ''}>
-        <button class="primary" id="send" ${thinking ? 'disabled' : ''}>${thinking ? 'Working' : 'Send'}</button>
-        ${thinking ? '<button class="ghost" id="halt">Stop</button>' : ''}
-      </div>
-    </section>
 
     <section class="zone" style="margin-top:14px">
       <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
