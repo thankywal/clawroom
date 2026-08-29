@@ -171,10 +171,13 @@ export const campaign: RoomDefinition = {
     },
     {
       id: 'waiting',
-      label: 'Waiting on you',
+      // Signals do not know who is looking, and this one fires for everyone
+      // in the room. A member reading "waiting on you" went looking for an
+      // approve button they do not have. Name the role instead.
+      label: 'Waiting on a person',
       detect: (_events, room) =>
         room.approvals.length
-          ? `${room.approvals.length} action${room.approvals.length > 1 ? 's' : ''} waiting on your approval.`
+          ? `${room.approvals.length} action${room.approvals.length > 1 ? 's' : ''} waiting on the ${room.def.stewardRole}'s approval. Only the ${room.def.stewardRole} can approve.`
           : null,
     },
   ],
