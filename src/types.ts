@@ -97,6 +97,13 @@ export interface Event {
   summary: string
 }
 
+/** A signal that has actually fired, ready to show. */
+export interface FiredSignal {
+  id: string
+  label: string
+  text: string
+}
+
 /** A pattern over the log that the steward should be shown. */
 export interface Signal {
   id: string
