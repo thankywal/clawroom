@@ -6,6 +6,13 @@ Live: https://clawroom.thankywal-bkk.workers.dev
 
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
+![A campaign room with four people in it. The work log shows Aung, Mya and Su
+making tool calls, each marked local or shared.](docs/media/01-room-four-people.jpg)
+
+Four people, four agents, one log. `local` calls kept their payload in the
+member's own browser. The room was told that Su drafted twice. It was not told
+what Su wrote.
+
 ---
 
 ClawRoom is git for agent work. A shared room where each person brings their
@@ -104,6 +111,36 @@ Tool chips in the chat panel are rendered from engine events, never from what
 the model says. A model that narrates a publish it never called leaves a
 visibly empty log, which is exactly what happened to us and is worth showing on
 purpose.
+
+## What it looks like
+
+![A member's view. The chat panel shows work, work, share and commit chips, and
+a banner says one action is waiting on approval.](docs/media/02-tiers-and-parked-approval.jpg)
+
+Su's agent drafted twice, submitted one, and asked to publish. The publish did
+not publish. It returned a handle and parked, and the banner says what the rest
+of the product will not do for you: only a person in this room can approve, and
+no agent has that tool.
+
+![The steward's view after approving. The work log's last two lines are a commit
+call and then the same tool run by a person.](docs/media/03-approved-by-a-person.jpg)
+
+The same story from the manager's side, after she clicked. The last two lines of
+the log are the whole mechanic: `commit publish asked to publish`, then
+`person publish published`.
+
+![A support desk room. A banner reads: this is not a support problem, export has
+failed 3 times across different tickets.](docs/media/04-signal-support-desk.jpg)
+
+The same engine, running a support desk. Three tickets, three failed diagnostics,
+one product bug. Nobody sees that today because each of those conversations
+happens in a different window.
+
+![The front door, offering a one click demo room.](docs/media/05-front-door.png)
+
+The front door. **Open the demo room** puts you in as the manager and opens a
+second window as one of your team, so both halves of the room are in front of
+you without any setup.
 
 ## Verified, not assumed
 

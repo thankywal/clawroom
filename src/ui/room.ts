@@ -16,6 +16,7 @@ import { clearPrivate, me, scratchFor } from '../engine/identity.js'
 import { roomById } from '../rooms/index.js'
 import { rememberRoom, roomLink, roomMeta, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
+import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
 import { resolveModelContext } from '../engine/webmcp.js'
 import { connectRoom, type Status, type Transport } from '../sync/client.js'
 
@@ -244,6 +245,40 @@ function chatLine(l: Line): string {
   </div>`
 }
 
+/**
+ * The day's free model allowance is spent, so the room walks a fixed sequence
+ * instead of an argued one. Every call below is real and goes through
+ * executeTool, so the log, the sync and the parked approval are all genuine.
+ * Only the choice of calls is scripted, and the note says so before the first
+ * one runs.
+ */
+async function runRehearsal(): Promise<void> {
+  const mc = resolveModelContext()
+  const plan = rehearsedPlan(def.id)
+  if (!mc || isSteward || !plan.length) return
+
+  chat.push({ k: 'note', text: REHEARSAL_NOTE })
+  thinking = true
+  render()
+
+  for (const step of plan) {
+    const handle = await host.handle(step.name)
+    if (!handle) continue
+    try {
+      await mc.executeTool(handle, JSON.stringify(step.args))
+    } catch {
+      // A rehearsal is best effort. A step that will not run is not worth
+      // stopping the rest of the sequence over.
+    }
+    render()
+    // Paced so a person can read it. Instant is not a demonstration.
+    await new Promise(r => setTimeout(r, 700))
+  }
+
+  thinking = false
+  render()
+}
+
 function wireComposer(): void {
   const input = el('say') as HTMLInputElement | null
   const send = () => {
@@ -336,7 +371,12 @@ async function connect(): Promise<void> {
         onAssistant: (text) => { chat.push({ k: 'agent', text }); render() },
         onDone: (reason, detail) => {
           thinking = false
-          if (reason === 'error') chat.push({ k: 'note', text: detail ?? 'The agent could not be reached.' })
+          if (reason === 'error') {
+            chat.push({ k: 'note', text: detail ?? 'The agent could not be reached.' })
+            render()
+            // Out of Neurons rather than broken. Show the loop anyway.
+            if (detail && /allowance|quota|neuron/i.test(detail)) { void runRehearsal(); return }
+          }
           if (reason === 'limit') chat.push({ k: 'note', text: 'Stopped after too many steps in one go.' })
           render()
         },

@@ -9,7 +9,7 @@
 
 import { roomList } from '../rooms/index.js'
 import { me, setName } from '../engine/identity.js'
-import { createRoom, forgetRoom, roomLink, savedRooms } from '../engine/rooms-local.js'
+import { createRoom, forgetRoom, roomLink, roomMeta, savedRooms } from '../engine/rooms-local.js'
 import type { WorkItem } from '../types.js'
 
 const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
@@ -69,6 +69,20 @@ function render(): void {
         </div>
       </section>` : ''}
 
+    <section class="zone demo" style="margin-bottom:18px">
+      <div class="zhead"><h2>See it running</h2><span class="note">nothing to fill in</span></div>
+      <div class="zbody">
+        <p class="demoline">Opens a marketing room with work already on the board. You land
+          as the manager, and a second window opens as Su, one of your team, so both halves
+          of the room are in front of you. Ask Su's agent to draft and submit something,
+          then watch your log fill and an approval arrive.</p>
+        <div class="btns">
+          <button class="primary" id="demo">Open the demo room</button>
+          <span id="derr" class="empty"></span>
+        </div>
+      </div>
+    </section>
+
     <section class="zone">
       <div class="zhead"><h2>Start a room</h2><span class="note">you get two links</span></div>
       <div class="zbody make">
@@ -109,6 +123,33 @@ function render(): void {
   for (const b of Array.from(mount.querySelectorAll<HTMLElement>('[data-drop]'))) {
     b.addEventListener('click', () => { forgetRoom(b.dataset['drop'] ?? ''); render() })
   }
+
+  el('demo')?.addEventListener('click', async () => {
+    const button = el('demo') as HTMLButtonElement | null
+    const err = el('derr')
+    // Opened inside the gesture and pointed somewhere later, because a
+    // window.open that happens after an await is a popup blocker's definition
+    // of a popup.
+    const second = window.open('about:blank', '_blank')
+    if (button) { button.disabled = true; button.textContent = 'Opening' }
+    try {
+      const room = await createRoom({ defId: 'campaign', title: 'Q3 launch campaign' })
+      localStorage.setItem(
+        `clawroom:pending:${room.roomId}`,
+        JSON.stringify(itemsFrom(suggested('campaign'))),
+      )
+      const meta = await roomMeta(room.roomId, room.secret)
+      if (second) {
+        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Su`
+        else second.close()
+      }
+      location.href = roomLink(room.roomId, room.secret)
+    } catch (e) {
+      second?.close()
+      if (err) err.textContent = String((e as Error)?.message ?? e)
+      if (button) { button.disabled = false; button.textContent = 'Open the demo room' }
+    }
+  })
 
   el('make')?.addEventListener('click', async () => {
     const button = el('make') as HTMLButtonElement | null

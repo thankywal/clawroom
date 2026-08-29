@@ -159,3 +159,10 @@ tr:last-child td{border-bottom:0}
 .mine:last-child{border-bottom:0}
 .mine a{color:var(--teal);text-decoration:none;font-size:13.5px;flex:1}
 .mine a:hover{text-decoration:underline}
+
+/* The front door's first offer. A visitor who has to name a room and fill in a
+   board before seeing anything will not see anything, and a visitor alone in a
+   room cannot see the only thing that matters, so the demo opens two windows. */
+.zone.demo{border-color:var(--line2);background:linear-gradient(180deg,#101c1c 0%,var(--panel) 60%)}
+.zone.demo .zhead h2{color:var(--teal)}
+.demoline{color:var(--dim);max-width:64ch;line-height:1.65}

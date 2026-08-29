@@ -19,6 +19,36 @@ function pickColour(id: string): string {
 
 const NAMES = ['Mya', 'Ben', 'Su', 'Aung', 'Lin', 'Nita', 'Ko', 'Thiri']
 
+// A second tab in the same browser is the same person, because localStorage is
+// shared, and that makes a room with two people in it impossible to show on one
+// machine. So a tab opened with ?as=Name gets its own identity in
+// sessionStorage, which is per tab rather than per origin.
+//
+// This is a demo affordance and it is not pretending to be anything else. It
+// mints a real member with its own id and its own scratch, so the privacy
+// boundary between the two tabs is the same boundary as between two laptops.
+const TAB_KEY = 'clawroom:me:tab'
+
+function tabIdentity(): Person | null {
+  try {
+    const asked = new URLSearchParams(location.search).get('as')?.trim().slice(0, 24)
+    const raw = sessionStorage.getItem(TAB_KEY)
+    if (raw) {
+      const p = JSON.parse(raw) as Partial<Person>
+      if (typeof p.id === 'string' && typeof p.name === 'string' && (!asked || p.name === asked)) {
+        return { id: p.id, name: p.name, colour: p.colour ?? pickColour(p.id) }
+      }
+    }
+    if (!asked) return null
+    const id = `tab_${crypto.randomUUID().slice(0, 8)}`
+    const person: Person = { id, name: asked, colour: pickColour(id) }
+    sessionStorage.setItem(TAB_KEY, JSON.stringify(person))
+    return person
+  } catch {
+    return null
+  }
+}
+
 function read(): Person | null {
   try {
     const raw = localStorage.getItem(ME_KEY)
@@ -34,7 +64,7 @@ function read(): Person | null {
 }
 
 export function me(): Person {
-  const existing = read()
+  const existing = tabIdentity() ?? read()
   if (existing) return existing
   const id = crypto.randomUUID()
   const person: Person = {
