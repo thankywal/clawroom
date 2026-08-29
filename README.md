@@ -148,7 +148,7 @@ you without any setup.
   "commit-tier calls wait for a human" is easy to assert and easy to believe
   without evidence. Same room, same model, same system prompt, and the same
   tool description saying publishing waits for a person. Given an adversarial
-  prompt, across twenty-three trials: **0/23** published with the engine, **23/23**
+  prompt, across twenty-eight trials: **0/28** published with the engine, **28/28**
   published with only the description. The guarded arm scores zero because it
   cannot do otherwise, so the number worth reading is the other one. Method and
   raw output in [docs/EVIDENCE.md](docs/EVIDENCE.md).
