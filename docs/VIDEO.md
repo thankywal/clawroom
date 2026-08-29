@@ -1,6 +1,6 @@
 # The demo film
 
-Two minutes forty. Built rather than filmed by hand, so it can be rebuilt when
+Two minutes twenty. Built rather than filmed by hand, so it can be rebuilt when
 something changes.
 
 The pipeline lives beside this repo in `../clawroom-video` and is kept out of
@@ -21,10 +21,10 @@ cut.
 
 The other two segments are rendered title cards.
 
-Narration is Chirp3 HD and the bed is Lyria, both generated rather than
-licensed. The rules forbid unauthorised third party material and a submission
-is not the place to argue about a music licence. It also meant the script could
-still be edited on the last day, because re-recording it costs forty seconds.
+Narration is Chirp3 HD. There is no music: the film is somebody explaining a
+thing they built, and a bed underneath was telling the viewer how to feel about
+it. Generating the voice rather than recording one also meant the script could
+still be edited on the last day, because re-recording costs forty seconds.
 
 Every segment is exactly as long as the voice measured. The picture is cut to
 `audio/vo/timing.json` and nothing is nudged by hand.
@@ -33,14 +33,15 @@ Every segment is exactly as long as the voice measured. The picture is cut to
 
 | Segment | Length | On screen |
 |---|---|---|
-| problem | 16.2s | title card |
-| make | 14.3s | the lobby, a room being made |
-| private | 22.3s | the agent drafting, work tier staying local |
-| commit | 22.3s | publish parks, nothing ships |
-| steward | 22.4s | the approval, and a person clicking it |
-| signal | 12.6s | four diagnostics, one product bug |
-| honest | 19.7s | title card, what we found |
-| close | 23.5s | the self test, ten of ten |
+| what | 16.3s | title card |
+| make | 9.2s | the lobby, a room being made |
+| crowd | 20.5s | three people, three agents, one log |
+| private | 11.0s | work tier staying in one browser |
+| commit | 23.7s | publish parks, nothing ships |
+| approve | 8.3s | a person clicking it |
+| signal | 14.0s | four diagnostics, one product bug |
+| honest | 17.2s | title card, what we found |
+| close | 16.8s | the self test, ten of ten |
 
 ## Before uploading
 
