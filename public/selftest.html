@@ -36,7 +36,7 @@
     <h1>Tool self-test</h1>
   </header>
   <p class="tag" style="margin-left:42px">Every Council tool, invoked through
-    <b>document.modelContext.executeTool()</b> — no agent involved. If these pass,
+    <b>document.modelContext.executeTool()</b>, no agent involved. If these pass,
     the tools an agent would call are working.</p>
 
   <div id="tally">running…</div>
@@ -80,7 +80,7 @@ const CASES = [
 ];
 
 /* executeTool() hands back the result envelope as a JSON *string*, not an
- * object — so unwrapping is two parses deep: envelope, then the tool's own
+ * object, so unwrapping is two parses deep: envelope, then the tool's own
  * JSON payload inside content[].text. */
 function unwrap(raw) {
   let env = raw;

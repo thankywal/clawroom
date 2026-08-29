@@ -73,7 +73,7 @@ row('api','document.modelContext', ...yn(onDoc));
 row('api','navigator.modelContext', ...yn(onNav));
 
 const mc = onDoc ? document.modelContext : (onNav ? navigator.modelContext : null);
-row('api','resolved namespace', mc ? (onDoc ? 'document' : 'navigator') : 'NONE — WebMCP unavailable', mc ? 'ok' : 'bad');
+row('api','resolved namespace', mc ? (onDoc ? 'document' : 'navigator') : 'NONE / WebMCP unavailable', mc ? 'ok' : 'bad');
 
 if (mc) {
   for (const m of ['registerTool','provideContext','getTools','executeTool','unregisterTool'])
@@ -84,7 +84,7 @@ if (mc) {
 const results = [];
 const mark = (name, ok, note='') => {
   results.push({name, ok});
-  row('reg', name, (ok ? 'PASS' : 'FAIL') + (note ? ' — ' + note : ''), ok ? 'ok' : 'bad');
+  row('reg', name, (ok ? 'PASS' : 'FAIL') + (note ? ' / ' + note : ''), ok ? 'ok' : 'bad');
 };
 
 let counter = 0;
@@ -92,7 +92,7 @@ let counter = 0;
 async function run() {
   if (!mc) { row('reg','(skipped)','WebMCP not available','bad'); return; }
 
-  // T1 — plain string return
+  // T1: plain string return
   try {
     await mc.registerTool({
       name: 'ping',
@@ -103,7 +103,7 @@ async function run() {
     mark('T1 register + string return', true);
   } catch(e) { mark('T1 register + string return', false, e.message); }
 
-  // T2 — {content:[...]} return shape
+  // T2: {content:[...]} return shape
   try {
     await mc.registerTool({
       name: 'echo',
@@ -121,7 +121,7 @@ async function run() {
     mark('T2 content[] return shape', true);
   } catch(e) { mark('T2 content[] return shape', false, e.message); }
 
-  // T3 — annotations + structuredContent
+  // T3: annotations + structuredContent
   try {
     await mc.registerTool({
       name: 'read_counter',
@@ -139,7 +139,7 @@ async function run() {
     mark('T3 annotations + structuredContent', true);
   } catch(e) { mark('T3 annotations + structuredContent', false, e.message); }
 
-  // T4 — AbortSignal registration (Chrome 153+); unregisters after 20s
+  // T4: AbortSignal registration (Chrome 153+); unregisters after 20s
   const ac = new AbortController();
   try {
     await mc.registerTool({
@@ -156,7 +156,7 @@ async function run() {
     }, 20000);
   } catch(e) { mark('T4 register with AbortSignal', false, e.message); }
 
-  // T5 — execute(args, {signal}) second argument
+  // T5: execute(args, {signal}) second argument
   try {
     await mc.registerTool({
       name: 'slow_task',
