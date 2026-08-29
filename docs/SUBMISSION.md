@@ -164,6 +164,14 @@ human, and only then expects the effect.
 Both pages ship with the site and both are rerunnable. Method, raw per-trial
 output and the limits of the sample are in `docs/EVIDENCE.md`.
 
+`docs/LIMITS.md` is the other half. The privacy boundary is per browser rather
+than cryptographic, so we defend the room from the room and not the browser
+from itself. Capability links are bearer secrets with no revocation. No
+third-party agent has driven a room end to end, and the closest thing we have
+is `/selftest` calling the tools with no agent at all. `getTools()` returns no
+inputSchema, so "any conformant agent can use this room" is true of execution
+and not yet true of discovery.
+
 ## What's next
 
 The approval mechanic wants to be a spec proposal rather than one project's

@@ -122,6 +122,9 @@ purpose.
   for it. The other calls `publish`, checks the board did not move, approves as
   a human, and only then expects the effect.
 - `/smoke` is the raw WebMCP capability probe.
+- [docs/LIMITS.md](docs/LIMITS.md) is the other half of that honesty: where the
+  boundary is softer than the pitch, what no third-party agent has yet done,
+  and what we deliberately did not build.
 - [docs/WEBMCP-NOTES.md](docs/WEBMCP-NOTES.md) records the API surface as
   measured, including three things that cost real time: there is no
   `unregisterTool()`, `executeTool()` resolves to a JSON string rather than an
