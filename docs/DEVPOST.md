@@ -103,7 +103,9 @@ There is no `unregisterTool()`, so a tool surface can only be taken down by abor
 
 `executeTool()` resolves to the result envelope as a JSON **string** rather than an object, so unwrapping is two parses deep.
 
-`getTools()` returns names and descriptions with **no inputSchema**, so an agent cannot learn how to call a tool from WebMCP alone. Schemas come from the room definition and the handle comes from `getTools()`, each providing the half it can.
+`getTools()` does return `inputSchema`, but Chrome 151 hands it back as a stringified `DOMString` rather than the object the spec has asked for since [webmcp#241](https://github.com/webmachinelearning/webmcp/issues/241) closed on 2026-08-14. The same lag shows in `executeTool()`, which still takes a JSON string for its arguments. Both are implementation lag rather than spec gaps, and both bite a client that types them from the current spec.
+
+This one is here because I got it wrong first. My notes said `getTools()` returned no schema at all, I wrote that in this description, and re-measuring before submitting is what found the truth. `docs/LIMITS.md` keeps the correction rather than quietly deleting it.
 
 Filming the product also surfaced four real bugs that reading the code would not have: a room mounting another room's tools, and a `join` op dispatched before the transport existed so nobody in the log had a name.
 

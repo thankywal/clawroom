@@ -46,16 +46,22 @@ through `document.modelContext.executeTool()` with no agent code whatsoever, so
 the tools are demonstrably on the standard surface and callable by anything
 that speaks it. That is not the same as having seen one do it.
 
-## `getTools()` returns no input schema, which weakens our own story
+## We got a WebMCP fact wrong and shipped it before checking
 
-This is a gap in the API rather than in our code, but it lands on us. An agent
-that discovers our tools through WebMCP alone learns their names, descriptions
-and handles, and cannot learn what arguments they take. Our agent gets schemas
-from the room definition it already has. A genuinely foreign agent could not.
+This file existed to list the things we knew were weak, and then one of the
+things we were confidently telling people turned out to be false.
 
-So "any conformant agent can use this room" is true of execution and not yet
-true of discovery. It is written up in `docs/WEBMCP-NOTES.md` because it is
-worth the spec authors' attention more than it is worth ours.
+We had written, in this repo and in the submission, that `getTools()` returns no
+`inputSchema` and that a foreign agent therefore cannot discover how to call our
+tools. Re-measuring on 2026-08-29 against Chrome 151 shows `inputSchema` is
+returned. The real finding is smaller and more useful: Chrome hands it back as a
+stringified `DOMString` rather than the object the spec has asked for since
+webmcp#241 closed. `docs/WEBMCP-NOTES.md` now carries the measurement.
+
+The correction matters more than the fact. An earlier measurement, written down
+once and then quoted from memory, is how a project ends up asserting something
+about a moving target that stopped being true. Everything else in this repo that
+claims a number has a page that reruns it, and that is the reason why.
 
 ## The ablation is ten trials, one model, one prompt
 

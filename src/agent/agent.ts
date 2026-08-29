@@ -5,10 +5,14 @@
 // WebMCP agent rather than a chatbot with a switch statement behind it. The
 // Worker is a stateless one shot completion proxy and nothing more.
 //
-// Tool schemas come from the room definition, not from getTools(), because
-// getTools() returns names and descriptions with no inputSchema. The handle it
-// does return is what executeTool needs, so both are used, each for the half
-// it can actually provide.
+// Tool schemas come from the room definition rather than from getTools(). That
+// began as a workaround for a gap that turned out not to exist: getTools() does
+// return inputSchema, though Chrome 151 still hands it back as a stringified
+// DOMString rather than the object the spec asks for since webmcp#241. It stays
+// because the room definition is the source of truth for what a room's tools
+// mean, and a client that parses whichever shape the browser ships this month
+// is a client that breaks twice. getTools() is still used for the handle that
+// executeTool wants.
 
 import type { ModelContext } from '../webmcp.js'
 import type { Person, RoomDefinition, RoomTool } from '../types.js'

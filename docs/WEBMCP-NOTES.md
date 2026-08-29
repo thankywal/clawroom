@@ -81,17 +81,44 @@ activity log stayed empty. Useful to know that a agent surface being adjacent to
 the page does not mean it speaks WebMCP, and that a model will narrate the
 actions it did not take.
 
-## getTools() has names, not schemas
+## Chrome 151 is a spec revision behind on the string to object migration
 
-`getTools()` returns `{ name, description }` and no `inputSchema`, which means
-an agent cannot discover how to call a tool from WebMCP alone. ClawRoom builds
-the model's tool list from the room definition it already holds, and uses
-`getTools()` only for the opaque handle that `executeTool` wants. Both are used,
-each for the half it can actually provide.
+An earlier version of this file said `getTools()` returns no `inputSchema` at
+all. That was wrong, and re-measuring it on 2026-08-29 is what found the more
+interesting fact underneath.
 
-Worth knowing before you design around it, because the natural assumption is
-that the browser is the source of truth for the tool surface, and for schemas
-it is not.
+Measured on Chrome 151.0.7922.175 against the deployed origin, one entry from
+`getTools()` carries:
+
+    { name, title, description, inputSchema, annotations, origin, window }
+
+So the schema is there. What is not there yet is the type the spec now asks
+for. [webmcp#241](https://github.com/webmachinelearning/webmcp/issues/241),
+closed on 2026-08-14, changed `RegisteredTool#inputSchema` from a stringified
+`DOMString` to an `object`, to match `ModelContextTool#inputSchema` and the MCP
+tool listing spec. Chrome 151 still hands back the string:
+
+    typeof tool.inputSchema                  // "string"
+    JSON.parse(tool.inputSchema).type        // "object"
+
+The same lag shows in `executeTool()`, which still takes a JSON string for its
+arguments even though [#243](https://github.com/webmachinelearning/webmcp/issues/243)
+and [#246](https://github.com/webmachinelearning/webmcp/issues/246) both closed
+in favour of passing an object. Both are implementation lag rather than spec
+gaps, and both are worth knowing before you write a client: if you type
+`inputSchema` as an object you will get a string, and if you feed `executeTool`
+an object today it will not do what the current spec says it should.
+
+ClawRoom builds the model's tool list from the room definition it already holds
+rather than from `getTools()`, which was originally a workaround for a gap that
+turned out not to exist. It stays because the room definition is the source of
+truth for what a room's tools mean, and because a client that parses whichever
+shape the browser happens to ship this month is a client that breaks twice.
+`getTools()` is still used for the opaque handle `executeTool` wants.
+
+`ontoolchange` also exists on the `ModelContext` prototype and we do not use
+it. Anyone building a tool surface that changes underneath a long lived agent
+probably should.
 
 ## Two response shapes from Workers AI
 

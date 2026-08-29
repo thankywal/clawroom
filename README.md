@@ -163,9 +163,13 @@ you without any setup.
   boundary is softer than the pitch, what no third-party agent has yet done,
   and what we deliberately did not build.
 - [docs/WEBMCP-NOTES.md](docs/WEBMCP-NOTES.md) records the API surface as
-  measured, including three things that cost real time: there is no
-  `unregisterTool()`, `executeTool()` resolves to a JSON string rather than an
-  object, and `getTools()` returns no `inputSchema`.
+  measured rather than as assumed, including a correction we had to make to our
+  own notes. There is no `unregisterTool()`, so removal goes through an
+  `AbortController`. And Chrome 151 is one spec revision behind on the string to
+  object migration: `executeTool()` still takes a JSON string, and
+  `getTools()` still returns `inputSchema` as a stringified `DOMString` even
+  though [webmcp#241](https://github.com/webmachinelearning/webmcp/issues/241)
+  closed in favour of an object.
 
 ## Running it
 

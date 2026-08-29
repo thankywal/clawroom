@@ -123,9 +123,9 @@ disappear before registering new ones.
 `executeTool()` resolves to the result envelope as a JSON string rather than an
 object, so unwrapping is two parses deep.
 
-`getTools()` returns names and descriptions with no inputSchema, so an agent
-cannot learn how to call a tool from WebMCP alone. Schemas come from the room
-definition and the handle comes from getTools, each providing the half it can.
+`getTools()` does return `inputSchema`, but Chrome 151 hands it back as a stringified `DOMString` rather than the object the spec has asked for since [webmcp#241](https://github.com/webmachinelearning/webmcp/issues/241) closed on 2026-08-14. The same lag shows in `executeTool()`, which still takes a JSON string for its arguments. Both are implementation lag rather than spec gaps, and both bite a client that types them from the current spec.
+
+This one is here because I got it wrong first. My notes said `getTools()` returned no schema at all, I wrote that in this description, and re-measuring before submitting is what found the truth. `docs/LIMITS.md` keeps the correction rather than quietly deleting it.
 
 ## Accomplishments
 
@@ -168,9 +168,8 @@ output and the limits of the sample are in `docs/EVIDENCE.md`.
 than cryptographic, so we defend the room from the room and not the browser
 from itself. Capability links are bearer secrets with no revocation. No
 third-party agent has driven a room end to end, and the closest thing we have
-is `/selftest` calling the tools with no agent at all. `getTools()` returns no
-inputSchema, so "any conformant agent can use this room" is true of execution
-and not yet true of discovery.
+is `/selftest` calling the tools with no agent at all. We also got a WebMCP fact wrong and
+shipped it before checking, which `docs/LIMITS.md` keeps rather than deletes.
 
 ## What's next
 
