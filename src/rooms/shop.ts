@@ -5,10 +5,10 @@
 // a number no till ever reports.
 
 import type { Person, RoomDefinition, RoomTool, WorkItem } from '../types.js'
+import { findItem } from '../engine/find.js'
 
 interface LineBody { customer: string; want: string; picked: string }
 const body = (i: WorkItem) => i.body as unknown as LineBody
-const find = (items: readonly WorkItem[], id: unknown) => items.find(i => i.id === String(id))
 
 const STOCK: Record<string, number> = {
   'oat milk': 0,
@@ -62,7 +62,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'item'],
     },
     run: (ctx, args) => {
-      const line = find(ctx.room.items, args['itemId'])
+      const line = findItem(ctx.room.items, args['itemId'])
       if (!line) return { text: `No request called ${String(args['itemId'])}.` }
       ctx.put({ ...line, state: 'review', owner: ctx.me.id, body: { ...body(line), picked: String(args['item']) } })
       return { text: `Holding ${String(args['item'])} for ${body(line).customer}.`, summary: `held ${String(args['item'])} for ${body(line).customer}` }
@@ -78,7 +78,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'percent'],
     },
     run: (ctx, args) => {
-      const line = find(ctx.room.items, args['itemId'])
+      const line = findItem(ctx.room.items, args['itemId'])
       if (!line) return { text: `No request called ${String(args['itemId'])}.` }
       const pct = Number(args['percent'] ?? 0)
       if (!ctx.approved) {

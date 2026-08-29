@@ -11,11 +11,11 @@
 // which is the only part a teacher can actually act on.
 
 import type { Person, RoomDefinition, RoomTool, WorkItem } from '../types.js'
+import { findItem } from '../engine/find.js'
 import { distinctCallers } from '../engine/signals.js'
 
 interface ProblemBody { question: string; answer: string; submitted: string }
 const body = (i: WorkItem) => i.body as unknown as ProblemBody
-const find = (items: readonly WorkItem[], id: unknown) => items.find(i => i.id === String(id))
 
 const memberTools: RoomTool[] = [
   {
@@ -25,7 +25,7 @@ const memberTools: RoomTool[] = [
     readOnly: true,
     inputSchema: { type: 'object', properties: { itemId: { type: 'string' } } },
     run: (ctx, args) => {
-      const one = args['itemId'] ? find(ctx.room.items, args['itemId']) : null
+      const one = args['itemId'] ? findItem(ctx.room.items, args['itemId']) : null
       const rows = (one ? [one] : ctx.room.items).map(i => `${i.id} [${i.state}] ${body(i).question}`)
       return { text: rows.join('\n') || 'No problems set.', summary: `read ${rows.length} problem(s)` }
     },
@@ -45,7 +45,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No problem called ${String(args['itemId'])}.` }
       const level = args['level'] === 2 ? 2 : 1
       const hint = level === 1
@@ -70,7 +70,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'answer'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No problem called ${String(args['itemId'])}.` }
       const ok = String(args['answer']).trim() === body(item).answer
       const tries = Number(ctx.scratch.get(`tries:${item.id}`) ?? 0) + 1
@@ -92,7 +92,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'answer'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No problem called ${String(args['itemId'])}.` }
       ctx.put({ ...item, state: 'done', owner: ctx.me.id, body: { ...body(item), submitted: String(args['answer']) } })
       return { text: `Submitted ${item.id}.`, summary: `submitted ${item.id}` }

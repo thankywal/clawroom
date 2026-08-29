@@ -47,6 +47,11 @@ export function createStore(args: {
   const subs = new Set<(s: RoomState) => void>()
   const mine = new Set<string>()
   const settled = new Map<string, boolean>()
+  // A store dispatches its join op the moment it is created, which is before
+  // the transport exists. Without this buffer that op is applied locally and
+  // never sent, so everyone else in the room sees an id where a name should
+  // be. It looked like a rendering bug for a while. It was not.
+  const outbox: Envelope[] = []
   let sink: ((env: Envelope) => void) | null = null
   let seq = 0
   let seeded = false
@@ -73,7 +78,8 @@ export function createStore(args: {
       applyOp(state, env)
       track(env)
       notify()
-      sink?.(env)
+      if (sink) sink(env)
+      else outbox.push(env)
       return env
     },
 
@@ -98,7 +104,14 @@ export function createStore(args: {
       return state.approvals.some(a => a.id === id) ? 'pending' : 'unknown'
     },
 
-    setSink(next) { sink = next },
+    setSink(next) {
+      sink = next
+      if (!sink) return
+      while (outbox.length) {
+        const env = outbox.shift()
+        if (env) sink(env)
+      }
+    },
 
     seedIfFirst(isFirst, items) {
       if (!isFirst || seeded) return

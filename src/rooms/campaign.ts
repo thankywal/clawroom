@@ -8,6 +8,7 @@
 // variants were never theirs to read.
 
 import type { Person, RoomDefinition, RoomTool, WorkItem } from '../types.js'
+import { findItem } from '../engine/find.js'
 import { callCount } from '../engine/signals.js'
 
 interface PostBody {
@@ -19,8 +20,6 @@ interface PostBody {
 
 const body = (i: WorkItem) => i.body as unknown as PostBody
 
-const find = (items: readonly WorkItem[], id: unknown): WorkItem | undefined =>
-  items.find(i => i.id === String(id))
 
 const memberTools: RoomTool[] = [
   {
@@ -55,7 +54,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'headline', 'copy'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No post called ${String(args['itemId'])}.` }
       const key = `draft:${item.id}`
       const prior = (ctx.scratch.get(key) as { headline: string; copy: string }[] | undefined) ?? []
@@ -84,7 +83,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'headline', 'copy'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No post called ${String(args['itemId'])}.` }
       const key = `draft:${item.id}`
       const prior = (ctx.scratch.get(key) as { headline: string; copy: string }[] | undefined) ?? []
@@ -106,7 +105,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No post called ${String(args['itemId'])}.` }
       const drafts = (ctx.scratch.get(`draft:${item.id}`) as { headline: string; copy: string }[] | undefined) ?? []
       const latest = drafts[drafts.length - 1]
@@ -133,7 +132,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No post called ${String(args['itemId'])}.` }
       if (!ctx.approved) {
         return {

@@ -6,10 +6,10 @@
 // because each conversation happens in a different window.
 
 import type { Person, RoomDefinition, RoomTool, WorkItem } from '../types.js'
+import { findItem } from '../engine/find.js'
 
 interface TicketBody { customer: string; problem: string; reply: string }
 const body = (i: WorkItem) => i.body as unknown as TicketBody
-const find = (items: readonly WorkItem[], id: unknown) => items.find(i => i.id === String(id))
 
 const DIAGNOSTICS: Record<string, string> = {
   connectivity: 'FAILED: the account region is set to eu-west but the workspace is us-east',
@@ -46,7 +46,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'check'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No ticket called ${String(args['itemId'])}.` }
       const check = String(args['check'])
       const out = DIAGNOSTICS[check] ?? `No diagnostic called ${check}.`
@@ -69,7 +69,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'reply'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No ticket called ${String(args['itemId'])}.` }
       ctx.put({ ...item, state: 'review', owner: ctx.me.id, body: { ...body(item), reply: String(args['reply']) } })
       return { text: `Replied on ${item.id}.`, summary: `replied on ${item.id}` }
@@ -85,7 +85,7 @@ const memberTools: RoomTool[] = [
       required: ['itemId', 'amount'],
     },
     run: (ctx, args) => {
-      const item = find(ctx.room.items, args['itemId'])
+      const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No ticket called ${String(args['itemId'])}.` }
       const amount = Number(args['amount'] ?? 0)
       if (!ctx.approved) {
