@@ -80,3 +80,32 @@ prompt it ran a Google Search, read the page, and reported constraints it had
 activity log stayed empty. Useful to know that a agent surface being adjacent to
 the page does not mean it speaks WebMCP, and that a model will narrate the
 actions it did not take.
+
+## getTools() has names, not schemas
+
+`getTools()` returns `{ name, description }` and no `inputSchema`, which means
+an agent cannot discover how to call a tool from WebMCP alone. ClawRoom builds
+the model's tool list from the room definition it already holds, and uses
+`getTools()` only for the opaque handle that `executeTool` wants. Both are used,
+each for the half it can actually provide.
+
+Worth knowing before you design around it, because the natural assumption is
+that the browser is the source of truth for the tool surface, and for schemas
+it is not.
+
+## Two response shapes from Workers AI
+
+Not a WebMCP fact, but it cost an hour and it will cost someone else one.
+Workers AI answers in two different shapes depending on the model. Some return
+a flat envelope:
+
+    { response: "...", tool_calls: [{ name, arguments }] }
+
+Others return the OpenAI choices envelope:
+
+    { choices: [{ message: { content, tool_calls: [{ function: { name, arguments } }] } }] }
+
+Read only the first and tool calling still appears to work, because the calls
+come through, while the model's closing message is silently always empty. There
+is no error. `worker/llm.ts` reads both, and synthesises call ids, since the
+flat shape has none.
