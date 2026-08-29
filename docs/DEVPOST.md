@@ -35,7 +35,7 @@ Three tiers, and the tier is not a permission level. It is a statement about whe
 - **share** puts something on the board. That is the moment a thing stops being yours.
 - **commit** does nothing at all until a person approves.
 
-Commit-tier calls do not block the agent either. The call returns a receipt with a handle, the approval becomes an object in shared state, and the agent can poll the handle or carry on with other work. WebMCP has no user-confirmation mechanism, and holding the execute promise open until someone clicks would time out and occupy the page's tool surface while it waited. So this is our proposal for the gap, written up in `docs/APPROVALS.md`.
+Commit-tier calls do not block the agent either. The call returns a receipt with a handle, the approval becomes an object in shared state, and the agent can poll the handle or carry on with other work. The API as shipped in the origin trial has no user-confirmation mechanism (measured: `ModelContext` exposes only `registerTool`, `getTools`, `executeTool` and `ontoolchange` on Chrome 151), and the spec group is actively designing one in [webmcp#165](https://github.com/webmachinelearning/webmcp/issues/165). Holding the execute promise open until someone clicks would time out and occupy the page's tool surface while it waited, so this is our proposal for that gap, written up in `docs/APPROVALS.md`.
 
 No agent can approve. The steward's agent can read the queue and argue for something, but only a person clicks. An agent that could approve its own room's commits would make the whole tier decoration.
 

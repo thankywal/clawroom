@@ -1,6 +1,7 @@
 // Tier enforcement, and the approval mechanic.
 //
-// The WebMCP spec has no way for a tool to ask a human before it acts, and an
+// The API as shipped in the origin trial has no way for a tool to ask a human
+// before it acts, the spec group is designing one in webmcp#165, and an
 // execute() promise held open for a person's attention span will time out and
 // occupy the page's tool surface while it waits. So a commit-tier tool here
 // returns a receipt rather than a result. The approval becomes an object in

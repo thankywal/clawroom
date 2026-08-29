@@ -64,10 +64,11 @@ being yours.
 Commit-tier calls do nothing at all until a person approves. Crucially they do
 not block the agent either. The call returns a receipt with a handle, the
 approval becomes an object in shared state, and the agent can poll the handle
-or carry on with other work. WebMCP has no user-confirmation mechanism and
-holding the execute promise open until someone clicks would time out and
-occupy the page's tool surface while it waited. So this is our proposal for the
-gap, and it is the piece most likely to be useful outside this project.
+or carry on with other work. The API as shipped in the origin trial has no
+user-confirmation mechanism, and the spec group is designing one right now in
+webmcp#165. Holding the execute promise open until someone clicks would time
+out and occupy the page's tool surface while it waited, so this is our proposal
+for that gap and the piece most likely to be useful outside this project.
 
 No agent can approve. The steward's agent can read the queue and argue for
 something, but only a person clicks. An agent that could approve its own room's
