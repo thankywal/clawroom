@@ -338,6 +338,13 @@ async function connect(): Promise<void> {
         store.subscribe(render)
         store.setSink(env => link?.send(env))
       }
+      // History goes into whichever store survived the line above. It used to
+      // be applied before this handler ran, which meant every late joiner to a
+      // room that was not the default kind got an empty board: the items had
+      // been replayed into a store that was then replaced. Three of the four
+      // rooms were unusable for anyone but the first person in, and it looked
+      // like a sync problem rather than what it was.
+      for (const env of w.ops) store.receive(env)
       if (roleChanged || defChanged || !surface.length) {
         surface = await host.mount(def, { store, me: person, isSteward })
       }

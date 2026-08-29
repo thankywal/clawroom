@@ -21,6 +21,11 @@ export interface Welcome {
   first: boolean
   title?: string
   defId?: string
+  /** Everything that happened before this client arrived. Handed to the page
+   *  rather than applied here, because the page may replace its store on
+   *  learning what kind of room this is, and history applied to the store it
+   *  is about to throw away is history lost. */
+  ops: Envelope[]
 }
 
 export function connectRoom(a: {
@@ -68,8 +73,7 @@ export function connectRoom(a: {
       let msg: any
       try { msg = JSON.parse(String(ev.data)) } catch { return }
       if (msg.t === 'welcome') {
-        for (const env of msg.ops ?? []) a.onEnvelope(env)
-        a.onWelcome({ role: msg.role, first: Boolean(msg.first), title: msg.title, defId: msg.defId })
+        a.onWelcome({ role: msg.role, first: Boolean(msg.first), title: msg.title, defId: msg.defId, ops: msg.ops ?? [] })
       } else if (msg.t === 'ops') {
         for (const env of msg.ops ?? []) a.onEnvelope(env)
       } else if (msg.t === 'denied') {
