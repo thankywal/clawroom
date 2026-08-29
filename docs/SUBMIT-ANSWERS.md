@@ -51,23 +51,33 @@ says so before the first one runs.
 
 ## Which agents or clients did you test your WebMCP tools with
 
-Four paths, and only two of them worked, which is itself a finding.
+Five paths. Three worked, two did not, and the two that did not are part of
+the finding.
 
-1. **A site-hosted in-page agent**, which is the one the demo uses. The
-   tool-calling loop runs in the browser over document.modelContext.executeTool()
-   with a stateless Cloudflare Workers AI proxy behind it. The origin trial
-   covers agents hosted by the site.
-2. **No agent at all.** /selftest.html drives every tool through executeTool()
+1. A site-hosted in-page agent, the one the demo uses. The tool-calling loop
+   runs in the browser over document.modelContext.executeTool() with a
+   stateless Cloudflare Workers AI proxy behind it (gpt-oss-120b during
+   development, llama-3.3-70b for the recorded runs). The origin trial covers
+   agents hosted by the site.
+2. A foreign client that has never seen the code. scripts/foreign-agent.mjs
+   attaches from outside the browser over CDP, imports nothing from src/, and
+   learns the room only through getTools(). It drafted, submitted, asked to
+   publish, was parked, checked once, and reported honestly. Transcript in
+   docs/evidence/.
+3. No agent at all. /selftest.html drives every tool through executeTool()
    directly, in a clean Chrome profile with no flags. 10 of 10.
-3. **Chrome's Ask Gemini side panel.** It does not call WebMCP tools. Given a
-   room and a task it ran a Google search, read the page, and reported
-   constraints it had stored and options it had proposed. None of it had
-   happened and the activity log stayed empty. Written up in
-   docs/WEBMCP-NOTES.md.
-4. **ChatGPT site tools.** Blocked behind a paid Work subscription, so untested.
+4. Chrome's Ask Gemini side panel. It does not call WebMCP tools. Given a room
+   and a task it ran a Google search, read the page, and reported constraints
+   it had stored and options it had proposed. None of it had happened and the
+   activity log stayed empty. Written up in docs/WEBMCP-NOTES.md.
+5. ChatGPT's in-app browser. Site tools there need a paid Work plan I do not
+   have, so it is untested. Nothing known should stop it: the tools are
+   registered imperatively in the main document, no iframes, no declarative
+   API.
 
 Browser: Chrome 151.0.7922.175, against the deployed origin rather than
-localhost.
+localhost. The ablation (docs/EVIDENCE.md) ran the in-page path 28 times per
+arm across six independent runs.
 
 ## Which AI tools have you leveraged
 
