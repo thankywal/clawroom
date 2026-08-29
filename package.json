@@ -7,7 +7,8 @@
     "build": "npm run check && vite build",
     "check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "ablate": "node scripts/ablate.mjs https://clawroom.thankywal-bkk.workers.dev/ablate.html?auto=1&n=5"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

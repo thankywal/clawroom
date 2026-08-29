@@ -15,6 +15,7 @@ export default defineConfig({
         main: entry('index.html'),
         room: entry('room.html'),
         selftest: entry('selftest.html'),
+        ablate: entry('ablate.html'),
         smoke: entry('smoke.html'),
       },
     },

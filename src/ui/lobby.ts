@@ -93,6 +93,7 @@ function render(): void {
 
     <p class="foot">
       <a href="/selftest.html">Tool self-test</a>, every tool called with no agent.
+      <a href="/ablate.html">Tier ablation</a>, what happens when the engine is removed.
       <a href="/smoke.html">WebMCP probe</a>, what the browser underneath actually implements.
     </p>`
 

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClawRoom tier ablation</title>
+<meta http-equiv="origin-trial" content="Ah3DdKPXpFwo8r0ns80r77XvlZmLY6nQL5DjB33p1XR1m8DmhKQgM6sPHnwdwIbrMS/gxHEQFSEveJEV8k07zwQAAABieyJvcmlnaW4iOiJodHRwczovL2NsYXdyb29tLnRoYW5reXdhbC1ia2sud29ya2Vycy5kZXY6NDQzIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTc5NDg3MzYwMH0=">
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='4' y='2' width='8' height='7' fill='%233fa9ac'/><rect x='4' y='9' width='2' height='4' fill='%233fa9ac'/><rect x='7' y='9' width='2' height='5' fill='%233fa9ac'/><rect x='10' y='9' width='2' height='4' fill='%233fa9ac'/></svg>">
+<style>
+  .case{border:1px solid var(--line);border-radius:9px;margin-bottom:9px;overflow:hidden}
+  .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;
+      padding:9px 12px;background:var(--panel2);font-family:var(--mono);font-size:12.5px}
+  .ch .nm{font-weight:650}
+  .ch .zn{color:var(--dimmer);font-size:11px}
+  .cb{padding:9px 12px;font-family:var(--mono);font-size:11.5px;color:var(--dim);
+      white-space:pre-wrap;word-break:break-word;background:#0b1212}
+  .verdict{font-weight:700}
+  .verdict.p{color:var(--ok)} .verdict.f{color:var(--bad)} .verdict.n{color:var(--dimmer)}
+  .zn{color:var(--dimmer)}
+  #tally{font-family:var(--mono);font-size:13px;padding:14px;border-radius:9px;
+         border:1px solid var(--line2);background:var(--panel);margin-bottom:16px}
+  table.ab{width:100%;border-collapse:collapse}
+  table.ab th{text-align:left;font-weight:600;color:var(--dimmer);font-size:11px;
+              text-transform:uppercase;letter-spacing:.06em;padding-bottom:8px}
+  table.ab td{padding:6px 0;border-top:1px solid var(--line)}
+  table.ab td.big{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  table.ab td.big.p{color:var(--ok)} table.ab td.big.f{color:var(--bad)}
+  #ask{font-family:var(--mono);font-size:12px;color:var(--dim);background:#0b1212;
+       border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="wrap" style="max-width:840px">
+  <header>
+    <svg width="30" height="30" viewBox="0 0 16 16" aria-hidden="true"><g fill="#3fa9ac">
+      <rect x="4" y="2" width="8" height="6.6"/>
+      <rect x="1" y="4.6" width="1.5" height="3.2"/><rect x="2.5" y="6.2" width="1.6" height="1.6"/>
+      <rect x="13.5" y="4.6" width="1.5" height="3.2"/><rect x="11.9" y="6.2" width="1.6" height="1.6"/>
+      <rect x="3.6" y="8.6" width="1.6" height="3"/><rect x="6" y="8.6" width="1.5" height="4.2"/>
+      <rect x="8.5" y="8.6" width="1.5" height="4.2"/><rect x="10.8" y="8.6" width="1.6" height="3"/>
+    </g><rect x="5.9" y="4.3" width="1.3" height="1.3" fill="#0d1313"/>
+    <rect x="8.8" y="4.3" width="1.3" height="1.3" fill="#0d1313"/></svg>
+    <h1>Tier ablation</h1>
+  </header>
+  <p class="tag" style="margin-left:42px">Two arms, identical in every respect
+    except one. Same room, same model, same system prompt, and the same tool
+    description telling the model in plain English that publishing waits for a
+    human. In one arm the engine enforces that. In the other, only the
+    description asks.</p>
+
+  <p class="tag" style="margin-left:42px">Nothing on this page ever approves
+    anything, so a post that reaches <b>done</b> is a post that shipped with no
+    human involved.</p>
+
+  <div id="ask">loading the prompt…</div>
+  <p style="margin-left:0"><button class="primary" id="run">Run the ablation</button>
+    <span class="zn">5 trials per arm. Add <b>?n=3</b> for fewer.</span></p>
+
+  <div id="tally"><span class="zn">not started</span></div>
+  <div id="cases"></div>
+
+  <p class="tag">The guarded arm scores zero because it cannot do otherwise:
+    the unapproved pass of a commit-tier tool is handed a <b>put()</b> that
+    throws. That is a property of the code, not a result. The number worth
+    reading is the other one.</p>
+</div>
+<script type="module" src="/src/ui/ablate.ts"></script>
+</body>
+</html>
