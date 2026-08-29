@@ -21,7 +21,11 @@ These nine fields are asked at the moment you press Submit.
 ## Testing instructions
 
 No credentials, no signup, no browser flags. The origin trial token is served
-in every page.
+in every page, so plain Google Chrome 149+ works as installed. Please use
+Chrome: that is the path this project was verified on. ChatGPT's in-app browser
+has not been tested against it, because site tools there need a paid Work plan
+I do not have. The tools are registered imperatively in the main document with
+no iframes, so nothing known should stop it, but I have not seen it.
 
 Open https://clawroom.thankywal-bkk.workers.dev in Chrome and press **Open the
 demo room**. You land in a marketing room as the manager, and a second window
