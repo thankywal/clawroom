@@ -153,6 +153,13 @@ function render(): void {
 
     <div class="tools">${surface.map(n => `<span class="chip">${esc(n)}</span>`).join('') || '<span class="dim">no tools mounted</span>'}</div>
 
+    ${isSteward && linkStatus === 'open' && !s.members.length ? `<div class="banner">
+      <b>Nobody else is here yet.</b> You are the ${esc(def.stewardRole)}, and the ${esc(def.stewardRole)} reads the room
+      rather than working in it, so the working tools are not on this page. Press <b>Copy invite link</b> and open it in
+      another browser, or in a new tab here with <code>&amp;as=Name</code> on the end. That person joins as a
+      ${esc(def.memberRole)} with the ${esc(def.memberRole)}'s tools, and their work shows up in your log.
+    </div>` : ''}
+
     ${fired.length ? `<div class="banner warn">${fired.map(f => `<b>${esc(f.label)}.</b> ${esc(f.text)}`).join('<br>')}</div>` : ''}
 
     ${s.approvals.map(approvalRow).join('')}
