@@ -1,6 +1,6 @@
 /* Minimal CDP driver: open a URL headlessly, wait for a predicate, print a result. */
 const [,, url, expr] = process.argv;
-const base = 'http://127.0.0.1:9333';
+const base = 'http://127.0.0.1:' + (process.env.CDP_PORT || 9333);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function targets() { return (await fetch(base + '/json')).json(); }
