@@ -2,43 +2,168 @@
 
 **Everyone brings an agent. The room sees the work, not the people.**
 
-ClawRoom is git for agent work: a shared room where each person brings their own
-AI agent, every tool call is a visible commit, the person in charge sees the
-work without ever seeing the conversations, and nothing ships until a human
-approves it.
-
-One engine, many rooms. A room is a schema: who the steward is, what tools
-members' agents get, what the steward's agent can see, and which call patterns
-raise a flag. Swap the schema and the same engine runs a marketing department,
-a classroom, a support desk, or a shop floor.
+Live: https://clawroom.thankywal-bkk.workers.dev
 
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
-## Status
+---
 
-Day 1. WebMCP foundation verified end to end:
+ClawRoom is git for agent work. A shared room where each person brings their
+own AI agent, every tool call lands in a visible log the way a commit does, and
+nothing ships until a human approves it.
 
-- Origin trial token live, so the tools work with no browser flags set
-- All tools exercised through `document.modelContext.executeTool()`, see `/selftest`
-- Findings recorded in [`docs/WEBMCP-NOTES.md`](docs/WEBMCP-NOTES.md)
+The obvious question first. This is not a chat app with AI in it, and it is not
+software for watching employees. There is no chat capture, no timer, no idle
+tracking, and no per-person activity score. The board is sorted by work, never
+by who did it. What the person in charge can see is the shape of what happened:
+which tools ran, against what, in what order. What they cannot see is anyone's
+conversation with their agent, and there is no tool in the engine that would
+return one.
 
-## Try it
+Git managed the same trick. A commit log shows what changed without showing how
+long you sat there, and a pull request is a place to say yes without being a
+surveillance record.
 
-    npx wrangler dev
+## Why this needs WebMCP specifically
 
-Or open the deployed origin in Chrome 149+ or the ChatGPT desktop browser.
-`/selftest` runs every tool without an agent and reports pass/fail in the page.
+Because the tools have to live in the page rather than on a server.
+
+Each participant's agent runs in their own browser, in their own session, with
+their own private context. The room is where they meet. A server-side MCP
+integration would mean every member's constraints and drafts passing through
+one process, which is the arrangement this is trying to avoid. WebMCP puts the
+tool surface inside the document, so the private half of a member's work never
+has to leave their machine to participate in shared work.
+
+The tool surface is also live rather than fixed. Switch rooms and the tools
+change, because the tools are a function of which room you are in and whether
+you are its steward. There is no `unregisterTool()` in the API, so that turns
+entirely on the `AbortController` the tools were registered under.
+
+## One engine, many rooms
+
+A room is a definition object: who the steward is, what tools each side's agent
+gets, what a work item is, and which call patterns are worth flagging. Four ship
+today and each is one file with no bespoke UI.
+
+| Room | Steward | The signal that makes it worth watching |
+|---|---|---|
+| Campaign | marketing manager | five drafts written and nothing submitted, someone is stuck on the brief |
+| Classroom | teacher | fourteen agents asked for a hint on question three, that question is not landing |
+| Support desk | support lead | the same diagnostic failed across four tickets, so it is one bug and not four conversations |
+| Shop floor | shop owner | two customers asked for something you do not stock and left |
+
+The support one is the clearest argument for the whole idea. Nobody sees that
+pattern today because each of those conversations happens in a different window.
+
+See [docs/ROOMS.md](docs/ROOMS.md) to write one.
+
+## Three tiers, and what they really mean
+
+The tier on a tool is not a permission level. It is a statement about where the
+payload lives.
+
+- **work** stays in the member's browser. Drafting, running a diagnostic, asking
+  for a hint. The room gets a one line summary and nothing else. Calling
+  `ctx.put` from a work-tier tool throws.
+- **share** becomes a work item everyone can see. This is the moment something
+  stops being yours.
+- **commit** does nothing at all until a person approves it.
+
+A commit-tier call does not block the agent. It returns a receipt with a handle,
+the approval becomes an object in shared state, a human acts on it, and the
+agent can poll the handle or carry on with something else. WebMCP has no
+user-confirmation mechanism, so this is our proposal for the gap, written up in
+[docs/APPROVALS.md](docs/APPROVALS.md).
+
+No agent can approve. The steward's agent can read the queue and argue for
+something, but only a person clicks.
+
+## The agent in the page
+
+The site hosts its own agent, and it matters that it does.
+
+Chrome's Gemini side panel does not call WebMCP tools. Given a room and a task
+it ran a Google search, read the page, and reported constraints it had stored
+and options it had proposed, none of which had happened. ChatGPT's site tools
+want a paid Work plan. Between them, a visitor with no subscription could not
+see the thing work at all.
+
+The origin trial covers "agents hosted by the site or in Chrome", so the site
+hosts one: a stateless Workers AI proxy, with the tool-calling loop running in
+the browser over `document.modelContext.executeTool`. The loop goes through
+WebMCP rather than around it, which is the difference between a WebMCP demo and
+a chatbot with a switch statement behind it.
+
+One honest note about that proxy. It sees the conversation, because it has to.
+It stores nothing, logs nothing, and is never told which room it is serving. The
+claim this project makes is narrower and does not depend on trusting it: **the
+steward never sees the conversation, and no tool in the engine can return one.**
+
+Tool chips in the chat panel are rendered from engine events, never from what
+the model says. A model that narrates a publish it never called leaves a
+visibly empty log, which is exactly what happened to us and is worth showing on
+purpose.
+
+## Verified, not assumed
+
+- `/selftest` calls every tool through `executeTool()` with no agent involved:
+  **10/10** against the deployed origin in a clean Chrome profile with no flags.
+  Two of those cases test the claim rather than a function. One writes a
+  sentinel sentence into a private draft and then searches all of shared state
+  for it. The other calls `publish`, checks the board did not move, approves as
+  a human, and only then expects the effect.
+- `/smoke` is the raw WebMCP capability probe.
+- [docs/WEBMCP-NOTES.md](docs/WEBMCP-NOTES.md) records the API surface as
+  measured, including three things that cost real time: there is no
+  `unregisterTool()`, `executeTool()` resolves to a JSON string rather than an
+  object, and `getTools()` returns no `inputSchema`.
+
+## Running it
+
+```
+npm install
+npm run dev
+```
+
+Note that **WebMCP will not be available on localhost**, because the origin
+trial token is bound to the deployed origin. For local work, enable
+`chrome://flags/#enable-webmcp-testing`. On the deployed site no flag is needed.
+
+```
+npm run check     # tsc for the browser and the worker
+npm run build     # vite, four pages
+npm run deploy    # build then wrangler
+```
+
+Headless verification against the deployed origin:
+
+```
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless=new --disable-gpu --no-first-run \
+  --remote-debugging-port=9335 --user-data-dir=/tmp/cp about:blank &
+
+CDP_PORT=9335 node scripts/verify.mjs \
+  https://clawroom.thankywal-bkk.workers.dev/selftest.html \
+  "document.getElementById('tally').textContent.trim()"
+```
 
 ## Layout
 
-    public/          the room, static, no build step
-      js/state.js    room state, private zone, fit logic
-      js/tools.js    WebMCP tool surface, grouped by zone
-      js/ui.js       rendering
-      selftest.html  every tool, called through executeTool()
-      smoke.html     WebMCP capability diagnostic
-    docs/            verified API surface, tool spec
-    scripts/         CDP harness for headless verification
+```
+src/engine/    ops and the reducer, the local-first store, tier enforcement,
+               builtin tools, signals, the WebMCP tool host, identity
+src/rooms/     one file per workplace
+src/agent/     the browser-side tool calling loop
+src/sync/      the client half of the room connection
+src/ui/        lobby, room, self-test
+worker/        the router, the LLM proxy, the Durable Object
+docs/          how to write a room, the approval proposal, measured API notes
+```
+
+The Durable Object stamps a sequence number on each envelope and fans it out.
+It does not know what a room is: definitions never cross the wire, only the key,
+so the server cannot tell a marketing department from a classroom.
 
 ## License
 
