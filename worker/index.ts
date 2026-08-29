@@ -13,6 +13,14 @@ const MAX_BODY = 32 * 1024
 const MAX_MESSAGES = 40
 const MAX_TOOLS = 24
 
+const ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/** Unguessable, and readable enough to paste into a chat without mangling. */
+function secret(len: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(len))
+  return [...bytes].map(b => ALPHABET[b % ALPHABET.length]).join('')
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -47,14 +55,31 @@ export default {
       return json(reply)
     }
 
-    // /api/room/<defId>/<instance>/(ws|sync). The Worker does not parse the
-    // room key beyond using it to pick a Durable Object; it never learns what
-    // kind of room it is.
-    const room = url.pathname.match(/^\/api\/room\/([^/]+)\/([^/]+)\/(ws|sync)$/)
+    // Creating a room mints two secrets. The Worker generates them, hands them
+    // to the caller once, and stores only their hashes in the room, so the
+    // links are the credential and nothing on the server can reproduce them.
+    if (url.pathname === '/api/rooms' && req.method === 'POST') {
+      const body = await req.json().catch(() => null) as { defId?: string; title?: string } | null
+      if (!body) return json({ error: 'bad json' }, 400)
+      const roomId = secret(10)
+      const steward = 's_' + secret(24)
+      const member = 'm_' + secret(24)
+      const res = await env.ROOM.get(env.ROOM.idFromName(roomId)).fetch(
+        new Request('https://room/create', {
+          method: 'POST',
+          body: JSON.stringify({ defId: body.defId, title: body.title, steward, member }),
+        }),
+      )
+      if (!res.ok) return json({ error: 'could not create room' }, 500)
+      return json({ roomId, steward, member })
+    }
+
+    // /api/room/<roomId>/(ws|meta). The Worker uses the id to pick a Durable
+    // Object and nothing else; it never learns what kind of room it is.
+    const room = url.pathname.match(/^\/api\/room\/([^/]+)\/(ws|meta)$/)
     if (room) {
-      const [, defId, instance] = room
-      const id = env.ROOM.idFromName(`${defId}/${instance}`)
-      return env.ROOM.get(id).fetch(req)
+      const [, roomId] = room
+      return env.ROOM.get(env.ROOM.idFromName(roomId!)).fetch(req)
     }
 
     return env.ASSETS.fetch(req)

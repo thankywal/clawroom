@@ -13,24 +13,24 @@ import { createToolHost, namespaceName } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
 import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
-import { roomById, roomList } from '../rooms/index.js'
+import { roomById } from '../rooms/index.js'
+import { rememberRoom, roomLink, roomMeta, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { resolveModelContext } from '../engine/webmcp.js'
 import { connectRoom, type Status, type Transport } from '../sync/client.js'
 
 const q = new URLSearchParams(location.search)
-const instance = q.get('r') ?? 'demo'
-const isSteward = q.get('as') === 'steward'
+const roomId = q.get('r') ?? ''
+const secret = q.get('k') ?? ''
 
-const person: Person = isSteward
-  ? { ...me(), name: me().name, colour: '#a980e0' }
-  : me()
+const person: Person = me()
 
+// The role is not read from the URL. It comes back from the server, which
+// decides what the secret in the link is worth. Until then, assume the least.
+let isSteward = false
 let def: RoomDefinition = roomById(q.get('room'))
-let roomKey = `${def.id}/${instance}`
-let store: RoomStore = createStore({
-  def, roomKey, me: person, role: isSteward ? 'steward' : 'member',
-})
+let roomKey = `${roomId}`
+let store: RoomStore = createStore({ def, roomKey, me: person, role: 'member' })
 
 // Chat lines are the only thing on this page written from what a model said.
 // Tool chips are not: they come from onCall, which only fires when a tool
@@ -58,6 +58,17 @@ let surface: string[] = []
 let agent: Agent | null = null
 let link: Transport | null = null
 let linkStatus: Status = 'connecting'
+let denied = false
+let invite: string | null = null
+/** The name the creator gave this room, which is not the template's name. */
+let roomTitle = ''
+
+async function inviteLink(): Promise<string | null> {
+  if (invite) return invite
+  const meta = await roomMeta(roomId, secret)
+  if (meta?.invite) invite = roomLink(roomId, meta.invite)
+  return invite
+}
 
 const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
 const el = (id: string) => document.getElementById(id)
@@ -108,6 +119,14 @@ function render(): void {
   const mount = el('room')
   if (!mount) return
 
+  if (denied) {
+    mount.innerHTML = `<div class="banner warn">
+      <b>This link does not open that room.</b> Room links carry their own key, and
+      the key is what decides whether you can approve things. Ask whoever created
+      the room to send you theirs, or <a href="/">start one of your own</a>.</div>`
+    return
+  }
+
   const drafts = scratchFor(roomKey, person.id).keys().length
   const fired = evaluateSignals(s)
 
@@ -115,8 +134,10 @@ function render(): void {
     <div class="bar">
       <span class="pill"><i style="background:${person.colour}"></i>${esc(person.name)}</span>
       <span class="pill">${esc(isSteward ? def.stewardRole : def.memberRole)}</span>
+      <span class="pill">${esc(roomTitle || def.title)}</span>
       <select id="switch" aria-label="Switch room">
-        ${roomList().map(r => `<option value="${r.id}" ${r.id === def.id ? 'selected' : ''}>${esc(r.title)}</option>`).join('')}
+        ${savedRooms().map(r => `<option value="${r.roomId}" ${r.roomId === roomId ? 'selected' : ''}>${esc(r.title)}</option>`).join('')}
+        <option value="__new">New room...</option>
       </select>
       <button class="ghost small" id="share">Copy invite link</button>
       <span class="status ${host.available ? 'live' : ''}">${
@@ -162,7 +183,7 @@ function render(): void {
       </div>
 
       <section class="zone">
-        <div class="zhead"><h2>${esc(def.title)}</h2><span class="note">everyone in the room sees this</span></div>
+        <div class="zhead"><h2>${esc(roomTitle || def.title)}</h2><span class="note">everyone in the room sees this</span></div>
         <div class="zbody">
           <table><thead><tr><th>Item</th><th>Brief</th><th>State</th><th>Owner</th></tr></thead>
           <tbody>${s.items.map(boardRow).join('')}</tbody></table>
@@ -182,16 +203,19 @@ function render(): void {
   wireComposer()
 
   el('share')?.addEventListener('click', async () => {
-    const url = `${location.origin}/room.html?room=${def.id}&r=${instance}`
-    try { await navigator.clipboard.writeText(url) } catch { /* clipboard can be blocked */ }
     const b = el('share')
-    if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1500) }
+    const invite = await inviteLink()
+    if (!invite) { if (b) b.textContent = 'Steward link only'; return }
+    try { await navigator.clipboard.writeText(invite) } catch { /* clipboard can be blocked */ }
+    if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
   })
 
   el('wipe')?.addEventListener('click', () => { clearPrivate(roomKey, person.id); render() })
 
   el('switch')?.addEventListener('change', e => {
-    void switchRoom((e.target as HTMLSelectElement).value)
+    const v = (e.target as HTMLSelectElement).value
+    if (v === '__new') { location.href = '/'; return }
+    switchRoom(v)
   })
 
   for (const b of Array.from(mount.querySelectorAll<HTMLElement>('[data-ok],[data-no]'))) {
@@ -239,42 +263,58 @@ function wireComposer(): void {
 }
 
 /**
- * Switching rooms without a reload. The order matters: stop the agent, drop
- * the connection, then wait for the old tool surface to actually go before
- * registering the new one. There is no unregisterTool in the API, so the
- * AbortController inside the host is the only thing that can take a surface
- * down, and it is what makes this possible at all.
+ * Switching rooms means going to a different room you hold a link to, so it is
+ * a navigation rather than a swap in place. Each room is its own Durable
+ * Object with its own key, and pretending otherwise would mean holding several
+ * rooms' credentials live in one page for no benefit.
  */
-async function switchRoom(id: string): Promise<void> {
-  if (id === def.id) return
-  agent?.stop()
-  link?.close()
-  link = null
-  await host.unmount()
-
-  def = roomById(id)
-  roomKey = `${def.id}/${instance}`
-  chat.length = 0
-  thinking = false
-  store = createStore({ def, roomKey, me: person, role: isSteward ? 'steward' : 'member' })
-
-  const url = new URL(location.href)
-  url.searchParams.set('room', def.id)
-  history.pushState({}, '', url)
-
-  await connect()
-  render()
+function switchRoom(id: string): void {
+  if (id === roomId) return
+  const saved: SavedRoom | undefined = savedRooms().find(r => r.roomId === id)
+  if (saved) location.href = roomLink(saved.roomId, saved.secret)
 }
 
 async function connect(): Promise<void> {
-  document.title = `${def.title} · ClawRoom`
   store.subscribe(render)
 
   link = connectRoom({
-    roomKey,
+    roomId,
+    secret,
     since: () => store.lastSeq(),
     onEnvelope: env => store.receive(env),
-    onFirst: first => store.seedIfFirst(first),
+    onWelcome: async w => {
+      const changed = w.role === 'steward' !== isSteward
+      isSteward = w.role === 'steward'
+      if (w.defId && w.defId !== def.id) {
+        def = roomById(w.defId)
+        store = createStore({ def, roomKey, me: person, role: w.role })
+        store.subscribe(render)
+        store.setSink(env => link?.send(env))
+      }
+      if (changed || !surface.length) {
+        surface = await host.mount(def, { store, me: person, isSteward })
+      }
+      roomTitle = w.title ?? def.title
+      document.title = `${roomTitle} · ClawRoom`
+      rememberRoom({
+        roomId, secret, defId: def.id, role: w.role, at: Date.now(),
+        title: w.title ?? def.title,
+      })
+      // Whatever the creator typed in the lobby, written in on first connect.
+      // The server never carried it.
+      let pending: WorkItem[] = []
+      try {
+        pending = JSON.parse(localStorage.getItem(`clawroom:pending:${roomId}`) ?? '[]')
+      } catch { /* nothing pending is the normal case */ }
+      store.seedIfFirst(w.first, pending)
+      if (w.first) localStorage.removeItem(`clawroom:pending:${roomId}`)
+      render()
+    },
+    onDenied: () => { denied = true; render() },
+    onRefused: need => {
+      chat.push({ k: 'note', text: `The room refused that. It needs the ${need} link.` })
+      render()
+    },
     onStatus: st => { linkStatus = st; render() },
   })
   store.setSink(env => link?.send(env))

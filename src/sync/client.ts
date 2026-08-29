@@ -16,14 +16,26 @@ export interface Transport {
   readonly status: Status
 }
 
+export interface Welcome {
+  role: 'steward' | 'member'
+  first: boolean
+  title?: string
+  defId?: string
+}
+
 export function connectRoom(a: {
-  roomKey: string
+  roomId: string
+  /** The secret from the link. This is the credential, and the server decides
+   *  what it is worth. The page never assigns itself a role. */
+  secret: string
   since: () => number
   onEnvelope: (env: Envelope) => void
-  onFirst: (isFirst: boolean) => void
+  onWelcome: (w: Welcome) => void
+  onDenied?: () => void
+  onRefused?: (need: string) => void
   onStatus?: (s: Status) => void
 }): Transport {
-  const url = `${location.origin.replace(/^http/, 'ws')}/api/room/${a.roomKey}/ws`
+  const url = `${location.origin.replace(/^http/, 'ws')}/api/room/${a.roomId}/ws`
   let ws: WebSocket | null = null
   let status: Status = 'connecting'
   let closed = false
@@ -48,18 +60,24 @@ export function connectRoom(a: {
     ws.addEventListener('open', () => {
       backoff = 400
       setStatus('open')
-      ws?.send(JSON.stringify({ t: 'hello', since: a.since() }))
+      ws?.send(JSON.stringify({ t: 'hello', since: a.since(), key: a.secret }))
       flush()
     })
 
     ws.addEventListener('message', ev => {
       let msg: any
       try { msg = JSON.parse(String(ev.data)) } catch { return }
-      if (msg.t === 'sync') {
+      if (msg.t === 'welcome') {
         for (const env of msg.ops ?? []) a.onEnvelope(env)
-        a.onFirst(Boolean(msg.first))
+        a.onWelcome({ role: msg.role, first: Boolean(msg.first), title: msg.title, defId: msg.defId })
       } else if (msg.t === 'ops') {
         for (const env of msg.ops ?? []) a.onEnvelope(env)
+      } else if (msg.t === 'denied') {
+        closed = true
+        a.onDenied?.()
+        ws?.close()
+      } else if (msg.t === 'refused') {
+        a.onRefused?.(String(msg.need ?? 'a different role'))
       }
     })
 

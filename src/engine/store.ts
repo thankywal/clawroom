@@ -6,7 +6,7 @@
 // That choice is what lets RoomTool.run stay synchronous, which in turn is
 // what keeps the room files small and readable.
 
-import type { Person, RoomDefinition, RoomState } from '../types.js'
+import type { Person, RoomDefinition, RoomState, WorkItem } from '../types.js'
 import { applyOp, makeEnvelope, type Envelope, type Op, type Role } from './ops.js'
 
 export type ApprovalStatus = 'pending' | 'approved' | 'denied' | 'unknown'
@@ -22,8 +22,9 @@ export interface RoomStore {
   lastSeq(): number
   approvalStatus(id: string): ApprovalStatus
   setSink(sink: ((env: Envelope) => void) | null): void
-  /** Called once, by whichever client the server says arrived first. */
-  seedIfFirst(isFirst: boolean): void
+  /** Called once, by whichever client the server says arrived first. Items
+   *  the creator typed win over the template's suggestions. */
+  seedIfFirst(isFirst: boolean, items?: WorkItem[]): void
 }
 
 export function createStore(args: {
@@ -99,11 +100,13 @@ export function createStore(args: {
 
     setSink(next) { sink = next },
 
-    seedIfFirst(isFirst) {
+    seedIfFirst(isFirst, items) {
       if (!isFirst || seeded) return
       seeded = true
       const people = state.members.length ? state.members : [me]
-      for (const item of def.seed(people)) store.dispatch({ k: 'item', item })
+      for (const item of items?.length ? items : def.seed(people)) {
+        store.dispatch({ k: 'item', item })
+      }
     },
   }
 

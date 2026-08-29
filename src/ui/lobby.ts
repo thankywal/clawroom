@@ -1,21 +1,51 @@
-// The front door. Pick a workplace, get a link, send the link to people.
+// The front door. Make a room, put your own work in it, send the link.
+//
+// There is no account. A room hands out two links when it is created, and the
+// secret in the link is the credential: the steward link can approve things,
+// the member link cannot, and the server enforces that rather than the page.
+// The rooms you hold links to are remembered in this browser, which means
+// losing the browser loses the list unless you kept a link. That is the
+// tradeoff for there being no central record of who belongs to what.
 
 import { roomList } from '../rooms/index.js'
 import { me, setName } from '../engine/identity.js'
+import { createRoom, forgetRoom, roomLink, savedRooms } from '../engine/rooms-local.js'
+import type { WorkItem } from '../types.js'
 
-const slug = () => {
-  const words = ['amber', 'quiet', 'north', 'ember', 'slate', 'linen', 'harbor', 'violet']
-  const pick = () => words[Math.floor(Math.random() * words.length)] ?? 'room'
-  return `${pick()}-${pick()}-${Math.random().toString(36).slice(2, 5)}`
+const esc = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
+const el = (id: string) => document.getElementById(id)
+
+/** The template's own seed, shown as a starting point rather than imposed. */
+function suggested(defId: string): string {
+  const def = roomList().find(r => r.id === defId)
+  if (!def) return ''
+  return def.seed([me()]).map(i => {
+    const brief = (i.body as Record<string, unknown>)['brief'] ?? (i.body as Record<string, unknown>)['question']
+      ?? (i.body as Record<string, unknown>)['problem'] ?? (i.body as Record<string, unknown>)['want'] ?? ''
+    return brief ? `${i.title}: ${brief}` : i.title
+  }).join('\n')
 }
 
-const link = (defId: string, instance: string, as?: 'steward') =>
-  `/room.html?room=${defId}&r=${instance}${as ? '&as=steward' : ''}`
+function itemsFrom(text: string): WorkItem[] {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 20).map((line, n) => {
+    const at = line.indexOf(':')
+    const title = at > 0 ? line.slice(0, at).trim() : line
+    const brief = at > 0 ? line.slice(at + 1).trim() : ''
+    return {
+      id: `w_${n + 1}`,
+      title,
+      state: 'open' as const,
+      body: { brief, question: brief, problem: brief, want: brief, channel: 'the board', headline: '', submitted: '', reply: '', picked: '', customer: '', answer: '' },
+    }
+  })
+}
 
 function render(): void {
-  const mount = document.getElementById('lobby')
+  const mount = el('lobby')
   if (!mount) return
   const person = me()
+  const mine = savedRooms()
+  const chosen = (el('kind') as HTMLSelectElement | null)?.value ?? roomList()[0]?.id ?? 'campaign'
 
   mount.innerHTML = `
     <p class="lede">Each person opens the room with their own agent. Every tool call the
@@ -23,32 +53,79 @@ function render(): void {
       log, never the conversations, and nothing ships without a human.</p>
 
     <div class="youare">
-      You are <input id="name" value="${person.name}" size="10" aria-label="Your name">
-      <span class="dim">stored in this browser, no account</span>
+      You are <input id="name" value="${esc(person.name)}" size="10" aria-label="Your name">
+      <span class="dim">stored in this browser. Rooms are opened with a link, not an account.</span>
     </div>
 
-    <div class="rooms">
-      ${roomList().map(r => {
-        const inst = slug()
-        return `<article class="roomcard">
-          <h3>${r.title}</h3>
-          <p>${r.premise}</p>
-          <p class="dim">${r.memberRole} and ${r.stewardRole}, ${r.memberTools.length} tools</p>
-          <div class="btns">
-            <a class="btn primary" href="${link(r.id, inst)}">Open as ${r.memberRole}</a>
-            <a class="btn ghost" href="${link(r.id, inst, 'steward')}">Open as ${r.stewardRole}</a>
-          </div>
-        </article>`
-      }).join('')}
-    </div>
+    ${mine.length ? `
+      <section class="zone" style="margin-bottom:18px">
+        <div class="zhead"><h2>Your rooms</h2><span class="note">links you hold</span></div>
+        <div class="zbody">
+          ${mine.map(r => `<div class="mine">
+            <a href="${roomLink(r.roomId, r.secret)}">${esc(r.title)}</a>
+            <span class="meta">${esc(r.role)}</span>
+            <button class="ghost small" data-drop="${r.roomId}">Forget</button>
+          </div>`).join('')}
+        </div>
+      </section>` : ''}
+
+    <section class="zone">
+      <div class="zhead"><h2>Start a room</h2><span class="note">you get two links</span></div>
+      <div class="zbody make">
+        <label>What is it called
+          <input id="title" placeholder="Q3 launch, Tuesday worksheet, Friday tickets">
+        </label>
+        <label>What kind of room
+          <select id="kind">
+            ${roomList().map(r => `<option value="${r.id}" ${r.id === chosen ? 'selected' : ''}>${esc(r.premise)}</option>`).join('')}
+          </select>
+        </label>
+        <label>What is on the board
+          <textarea id="items" rows="5" placeholder="One per line. Put a colon after the name for a brief."></textarea>
+          <span class="empty">Pre-filled from the template. Replace it with your actual work.</span>
+        </label>
+        <div class="btns">
+          <button class="primary" id="make">Create the room</button>
+          <span id="err" class="empty"></span>
+        </div>
+      </div>
+    </section>
 
     <p class="foot">
       <a href="/selftest.html">Tool self-test</a>, every tool called with no agent.
       <a href="/smoke.html">WebMCP probe</a>, what the browser underneath actually implements.
     </p>`
 
-  const input = document.getElementById('name') as HTMLInputElement | null
-  input?.addEventListener('change', () => { setName(input.value); render() })
+  const nameInput = el('name') as HTMLInputElement | null
+  nameInput?.addEventListener('change', () => { setName(nameInput.value); render() })
+
+  const kind = el('kind') as HTMLSelectElement | null
+  const items = el('items') as HTMLTextAreaElement | null
+  const title = el('title') as HTMLInputElement | null
+  if (items && !items.value) items.value = suggested(chosen)
+  kind?.addEventListener('change', () => { if (items) items.value = suggested(kind.value) })
+
+  for (const b of Array.from(mount.querySelectorAll<HTMLElement>('[data-drop]'))) {
+    b.addEventListener('click', () => { forgetRoom(b.dataset['drop'] ?? ''); render() })
+  }
+
+  el('make')?.addEventListener('click', async () => {
+    const button = el('make') as HTMLButtonElement | null
+    const err = el('err')
+    const name = title?.value.trim()
+    if (!name) { if (err) err.textContent = 'Give the room a name first.'; title?.focus(); return }
+    if (button) { button.disabled = true; button.textContent = 'Creating' }
+    try {
+      const room = await createRoom({ defId: kind?.value ?? chosen, title: name })
+      // The creator's items travel in this browser and are written into the
+      // room on first connect, so the server never has to know what work is.
+      localStorage.setItem(`clawroom:pending:${room.roomId}`, JSON.stringify(itemsFrom(items?.value ?? '')))
+      location.href = roomLink(room.roomId, room.secret)
+    } catch (e) {
+      if (err) err.textContent = String((e as Error)?.message ?? e)
+      if (button) { button.disabled = false; button.textContent = 'Create the room' }
+    }
+  })
 }
 
 render()

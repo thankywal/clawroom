@@ -145,3 +145,17 @@ tr:last-child td{border-bottom:0}
 .verdict{font-weight:700}
 .verdict.p{color:var(--ok)} .verdict.f{color:var(--bad)}
 .dim{color:var(--dim)}
+
+/* making a room */
+.make label{display:block;margin-bottom:13px;font-size:12.5px;color:var(--dim)}
+.make input,.make textarea,.make select{display:block;width:100%;margin-top:5px;font:inherit;
+  font-size:13.5px;background:#0a1010;color:var(--ink);border:1px solid var(--line2);
+  border-radius:8px;padding:8px 11px}
+.make textarea{resize:vertical;line-height:1.6;font-family:var(--mono);font-size:12.5px}
+.make input:focus,.make textarea:focus,.make select:focus{outline:none;border-color:var(--teal);
+  box-shadow:0 0 0 3px var(--teal-dim)}
+.make .empty{display:block;margin-top:5px}
+.mine{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #172424}
+.mine:last-child{border-bottom:0}
+.mine a{color:var(--teal);text-decoration:none;font-size:13.5px;flex:1}
+.mine a:hover{text-decoration:underline}
