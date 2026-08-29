@@ -267,7 +267,7 @@ async function switchRoom(id: string): Promise<void> {
 }
 
 async function connect(): Promise<void> {
-  document.title = `${def.title} — ClawRoom`
+  document.title = `${def.title} · ClawRoom`
   store.subscribe(render)
 
   link = connectRoom({
