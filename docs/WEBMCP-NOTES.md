@@ -1,6 +1,6 @@
 # Verified WebMCP surface
 
-Measured, not assumed. `public/smoke.html` is the diagnostic that produced this;
+Measured, not assumed. `smoke.html`, served at /smoke, is the diagnostic that produced this;
 it ships with the project so anyone can re-run it.
 
 Chrome 151 · macOS · https://clawroom.thankywal-bkk.workers.dev

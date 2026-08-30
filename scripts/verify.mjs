@@ -25,7 +25,7 @@ await sleep(1500);
 for (let i = 0; i < 30; i++) {
   const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
   const v = r.result?.result?.value;
-  if (v && v !== 'running…' && !String(v).startsWith('__PENDING')) { console.log(v); process.exit(0); }
+  if (v && !/^running/i.test(String(v)) && !String(v).startsWith('__PENDING')) { console.log(v); process.exit(0); }
   await sleep(500);
 }
 console.log('TIMED_OUT');

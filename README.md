@@ -359,7 +359,7 @@ trial token is bound to the deployed origin. For local work, enable
 
 ```
 npm run check     # tsc for the browser and the worker
-npm run build     # vite, four pages
+npm run build     # vite, five pages
 npm run deploy    # build then wrangler
 ```
 
