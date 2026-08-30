@@ -28,7 +28,9 @@ function suggested(defId: string): string {
 
 function itemsFrom(text: string): WorkItem[] {
   return text.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 20).map((line, n) => {
-    const at = line.indexOf(':')
+    // The separator is a colon followed by a space, so a URL in the line
+    // ("marketing plan for https://example.com") does not get cut at "https:".
+    const at = line.search(/:\s/)
     const title = at > 0 ? line.slice(0, at).trim() : line
     const brief = at > 0 ? line.slice(at + 1).trim() : ''
     return {
