@@ -62,6 +62,15 @@ from the moment its table had rendered. Dan's three failures were made off
 camera through the same `computer_run` tool, which is the only way anything
 reaches the log.
 
+## The one timing bug worth remembering
+
+Cutting a narration line out of the closing segment left the end card five
+seconds behind its own sentence, so the film said "everyone brings an agent"
+over a screenshot of a test log, and then flashed the card for a second and
+stopped. The card is now positioned by reading the narration timing file for
+the line it belongs to, rather than by a number typed into the composition, so
+the next cut cannot do it again.
+
 ## Before uploading
 
 - Unlisted on YouTube, not private. Private cannot be opened by a judge.
