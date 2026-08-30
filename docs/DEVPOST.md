@@ -79,6 +79,19 @@ The Worker fetches and proxies, because a browser cannot read another origin and
 
 Point a source at an ordinary page that registers its own WebMCP tools and the room says it found them and cannot call them. A tool surface belongs to a document, `getTools({ fromOrigins })` is in the spec but not in Chrome 151, and an agent that wants those tools has to be on that page. Saying so is better than pretending.
 
+## Bring your own agent, over MCP
+
+The in-page agent exists so a visitor with no subscription sees the loop work. If you already have a coding agent, it can join the room instead:
+
+```
+claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+```
+
+`scripts/clawroom-mcp.mjs` is an MCP server that holds no tools. It opens the room in a real Chrome, lists what the page registered with `getTools()`, and calls it with `executeTool()`. A source somebody approved a minute ago is there without a restart. A commit-tier call parks for a human, because the bridge does not decide, the page does. And the tier engine stays in the one place it can be enforced: if the bridge held the tools, the room would have two enforcement points and one of them would drift.
+
+Verified two ways against the deployed origin, transcript in `docs/evidence/mcp-bridge-2026-08-30.txt`: the bridge's own client drafting, submitting, asking to publish and being parked with a handle; and a JSON-RPC client over stdio doing `initialize`, `tools/list` (21 tools, with Chrome 151's stringified `inputSchema` parsed back into an object), a `tools/call` that ran a command on the member's sandbox, and an unknown tool name answering `isError`.
+
 ## Bring your own model
 
 The site hosts a 70B on Workers AI so a visitor with no subscription can watch the loop run. Under the composer there is a line naming the model in use and a link to change it: any OpenAI-compatible endpoint, with presets for OpenAI, Groq and OpenRouter.
@@ -177,7 +190,7 @@ Filming the product also surfaced real bugs that reading the code would not have
 
 ## What I know is still weak
 
-`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare rather than on the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate a room's invite now, but a leaked link works until they do. The door that makes a steward admit each arrival is a social gate, not an identity system: a person turned away can come back under another name with the same link. A borrowed tool's description is written by whoever runs that API, so every borrowed tool is marked untrusted, and the address guard checks names and literals rather than resolving them. Bringing your own model puts your key in a browser and passes it through my Worker, which stores nothing, but that is a claim about code you can read. Deleting a room does not destroy its members' sandboxes, because only the browser that minted one can address it. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
+`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare rather than on the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate a room's invite now, but a leaked link works until they do. The door that makes a steward admit each arrival is a social gate, not an identity system: a person turned away can come back under another name with the same link. A borrowed tool's description is written by whoever runs that API, so every borrowed tool is marked untrusted, and the address guard checks names and literals rather than resolving them. Bringing your own model puts your key in a browser and passes it through my Worker, which stores nothing, but that is a claim about code you can read. Deleting a room does not destroy its members' sandboxes, because only the browser that minted one can address it. No third-party product has been observed driving a room through its own WebMCP support: ChatGPT's site tools want a paid Work plan and Chrome's side panel does not call these tools at all. What a third-party agent can do today is join over the MCP bridge, which is a real product on one end and my code on the other. The two clients that have driven a room unaided are both mine, and only their ignorance of the codebase is guaranteed. The ablation is twenty-eight trials on one model and one prompt.
 
 ## Taking it back to the spec
 

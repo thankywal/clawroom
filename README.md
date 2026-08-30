@@ -123,6 +123,25 @@ or on a real third-party MCP server that needs no key:
 [docs/SOURCES.md](docs/SOURCES.md) has the tier rules, the address guard, and
 why a page that registers its own WebMCP tools can be seen but not called.
 
+## Bring your own agent, over MCP
+
+A coding agent that speaks MCP can join a room:
+
+```
+claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+```
+
+`scripts/clawroom-mcp.mjs` holds no tools. It opens the room in a real Chrome,
+lists what the page registered with `getTools()`, and calls it with
+`executeTool()`. So a source somebody approved a minute ago is there without a
+restart, a commit-tier call parks for a human, and the tier engine stays in the
+one place it can be enforced. If the bridge held the tools, the room would have
+two enforcement points and one of them would drift.
+
+Transcripts of both a stdio JSON-RPC client and the bridge's own end-to-end run
+are in `docs/evidence/mcp-bridge-2026-08-30.txt`.
+
 ## Bring your own model
 
 The room hosts a 70B on Workers AI so that a visitor with no subscription can
