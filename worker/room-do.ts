@@ -37,6 +37,9 @@ interface OpMsg { t: 'op'; env: Envelope }
 interface Ping { t: 'ping' }
 type Inbound = Hello | OpMsg | Ping
 
+/** A room hands out at most this many computers, ever. */
+const MAX_DESKS = 12
+
 const key = (seq: number) => `op:${String(seq).padStart(9, '0')}`
 
 export async function hash(secret: string): Promise<string> {
@@ -59,6 +62,10 @@ export class RoomDO implements DurableObject {
   private seeded = false
   private config: RoomConfig | null = null
   private admitted = new Set<string>()
+  /** Desk ids this room has seen. A sandbox costs money and a room key is a
+   *  bearer secret, so a room that will mint machines without limit is a bill
+   *  waiting to happen. Capped rather than left to good manners. */
+  private desks = new Set<string>()
   private waiting = new Map<string, Knocker>()
   private hits = new Map<WebSocket, { at: number; n: number }>()
 
@@ -68,6 +75,7 @@ export class RoomDO implements DurableObject {
       this.seeded = (await this.ctx.storage.get<boolean>('seeded')) ?? false
       this.config = (await this.ctx.storage.get<RoomConfig>('config')) ?? null
       this.admitted = new Set(await this.ctx.storage.get<string[]>('admitted') ?? [])
+      this.desks = new Set(await this.ctx.storage.get<string[]>('desks') ?? [])
     })
   }
 
@@ -211,6 +219,28 @@ export class RoomDO implements DurableObject {
       return Response.json({ ok: true, invite: member })
     }
 
+    // How many machines this room has handed out, and whether it will hand
+    // out one more. Called by the desk endpoint before it wakes a sandbox.
+    if (url.pathname.endsWith('/desk') && req.method === 'POST') {
+      if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
+      if (!(await this.roleFor(url.searchParams.get('k') ?? ''))) {
+        return Response.json({ error: 'not your room' }, { status: 403 })
+      }
+      const desk = url.searchParams.get('desk') ?? ''
+      if (!desk) return Response.json({ error: 'no desk' }, { status: 400 })
+      if (!this.desks.has(desk)) {
+        if (this.desks.size >= MAX_DESKS) {
+          return Response.json(
+            { error: `this room has already handed out ${MAX_DESKS} computers, which is its limit` },
+            { status: 429 },
+          )
+        }
+        this.desks.add(desk)
+        await this.ctx.storage.put('desks', [...this.desks])
+      }
+      return Response.json({ ok: true, desks: this.desks.size, limit: MAX_DESKS })
+    }
+
     // The door. Open means the invite link is the whole gate, which is how a
     // room starts. Ask means the steward also has to let each person in.
     if (url.pathname.endsWith('/door') && req.method === 'POST') {
@@ -279,7 +309,7 @@ export class RoomDO implements DurableObject {
       }
       await this.ctx.storage.deleteAll()
       this.config = null; this.seq = 0; this.seeded = false; this.hits.clear()
-      this.admitted.clear(); this.waiting.clear()
+      this.admitted.clear(); this.waiting.clear(); this.desks.clear()
       return Response.json({ ok: true })
     }
 

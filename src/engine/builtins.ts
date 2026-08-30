@@ -162,6 +162,77 @@ export function builtinStewardTools(store: RoomStore): RoomTool[] {
       },
     },
     {
+      name: 'read_approval',
+      title: 'Read one thing waiting on you',
+      description:
+        'Read everything about one pending action: what it would do, the words it would ship, ' +
+        'and the arguments it was asked with. Use this before you advise your human, so that ' +
+        'what you tell them is about the thing rather than about its title.',
+      tier: 'work',
+      readOnly: true,
+      untrusted: true,
+      inputSchema: {
+        type: 'object',
+        properties: { handle: { type: 'string', description: 'The apv_ handle' } },
+        required: ['handle'],
+      },
+      run: (ctx, args) => {
+        const handle = String(args['handle'] ?? '')
+        const a = ctx.room.approvals.find(x => x.id === handle)
+        if (!a) return { text: `Nothing called ${handle} is waiting.`, summary: `looked for ${handle}` }
+        const item = a.item ? ctx.room.items.find(i => i.id === a.item) : undefined
+        const body = (item?.body ?? {}) as Record<string, unknown>
+        const words = ['headline', 'submitted', 'reply', 'answer', 'brief']
+          .map(k => (typeof body[k] === 'string' && body[k] ? `${k}: ${String(body[k])}` : null))
+          .filter(Boolean)
+        return {
+          text: [
+            `${a.id} would ${a.describe}`,
+            `asked by ${ctx.room.members.find(m => m.id === a.requestedBy)?.name ?? a.requestedBy}`,
+            ...(item ? [`on ${item.title}, currently ${item.state}`] : []),
+            ...words,
+            `arguments: ${JSON.stringify(a.args)}`,
+            'You cannot approve this. Tell your human what it says and what you would do.',
+          ].join('\n'),
+          data: { approval: a, item },
+          summary: `read ${a.id} in full`,
+        }
+      },
+    },
+    {
+      name: 'send_back',
+      title: 'Send something back, with a reason',
+      description:
+        'Send a submitted item back to whoever wrote it, with a note saying what needs to change. ' +
+        'This does not decline a pending approval; it moves the work back so the person can fix it. ' +
+        'Everyone in the room sees the note, which is the point: the reason is part of the record.',
+      tier: 'share',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          itemId: { type: 'string', description: 'Which item, for example post_1' },
+          note: { type: 'string', description: 'What has to change, in a sentence or two' },
+        },
+        required: ['itemId', 'note'],
+      },
+      run: (ctx, args) => {
+        const id = String(args['itemId'] ?? '')
+        const note = String(args['note'] ?? '').trim()
+        const item = ctx.room.items.find(i => i.id === id)
+        if (!item) return { text: `No item called ${id}.` }
+        if (!note) return { text: 'Sending something back needs a reason. Say what has to change.' }
+        ctx.put({
+          ...item,
+          state: 'drafting',
+          body: { ...item.body, note, sentBackBy: ctx.me.name, sentBackAt: Date.now() },
+        })
+        return {
+          text: `Sent ${item.title} back with your note. It is out of review, and whoever owns it can see why.`,
+          summary: `sent ${item.title} back: ${note.slice(0, 80)}`,
+        }
+      },
+    },
+    {
       name: 'read_signals',
       title: 'What this room has noticed',
       description:

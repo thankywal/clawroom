@@ -104,7 +104,7 @@ export default {
 
     // /api/room/<roomId>/(ws|meta). The Worker uses the id to pick a Durable
     // Object and nothing else; it never learns what kind of room it is.
-    const room = url.pathname.match(/^\/api\/room\/([^/]+)\/(ws|meta|rotate|delete|door|admit|refuse)$/)
+    const room = url.pathname.match(/^\/api\/room\/([^/]+)\/(ws|meta|rotate|delete|door|admit|refuse|desk)$/)
     if (room) {
       const [, roomId] = room
       return env.ROOM.get(env.ROOM.idFromName(roomId!)).fetch(req)

@@ -106,12 +106,20 @@ export async function handleDesk(req: Request, env: Env, roomId: string): Promis
 
   // Anyone with a key to the room may have a desk in it. The room decides
   // what the key is worth; this handler only asks whether it is worth anything.
-  const meta = await env.ROOM.get(env.ROOM.idFromName(roomId))
-    .fetch(new Request(`https://room/meta?k=${encodeURIComponent(body.k ?? '')}`))
-  if (!meta.ok) return json({ error: 'not your room' }, 403)
-
   const desk = String(body.desk ?? '')
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(desk)) return json({ error: 'bad desk id' }, 400)
+
+  // One call does both: proves the caller holds a key to this room, and
+  // registers the desk against the room's cap. A room that will mint machines
+  // for anyone who asks is a bill waiting to happen.
+  const reg = await env.ROOM.get(env.ROOM.idFromName(roomId)).fetch(new Request(
+    `https://room/desk?k=${encodeURIComponent(body.k ?? '')}&desk=${encodeURIComponent(desk)}`,
+    { method: 'POST' },
+  ))
+  if (!reg.ok) {
+    const why = await reg.json().catch(() => ({ error: 'not your room' })) as { error?: string }
+    return json({ error: why.error ?? 'not your room' }, reg.status === 429 ? 429 : 403)
+  }
 
   const sandbox = getSandbox(env.Sandbox, `desk:${roomId}:${desk}`, { sleepAfter: '10m' })
 
