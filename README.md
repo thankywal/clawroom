@@ -214,6 +214,51 @@ user-confirmation mechanism, so this is our proposal for the gap, written up in
 No agent can approve. The steward's agent can read the queue and argue for
 something, but only a person clicks.
 
+## Where the tools are registered
+
+Every tool in this project reaches the browser through one call, in
+[src/engine/webmcp.ts](src/engine/webmcp.ts). A room tool is wrapped by the
+tier engine first, so the thing handed to the browser already refuses to ship
+anything a person has not approved.
+
+```js
+const mc = document.modelContext
+
+// One AbortController per tool, because the API has no unregisterTool().
+const ac = new AbortController()
+
+await mc.registerTool({
+  name: tool.name,
+  title: tool.title ?? prettify(tool.name),
+  // A commit-tier tool has the engine's note appended, so the model is told
+  // in the description as well as being stopped by the code.
+  description: tool.tier === 'commit' ? tool.description + COMMIT_NOTE : tool.description,
+  inputSchema: tool.inputSchema,
+  // Both hints, always. An absent hint is not a safe default, it is a missing
+  // one, and Chrome 151 drops destructiveHint entirely.
+  annotations: {
+    readOnlyHint: tool.readOnly ?? false,
+    untrustedContentHint: tool.untrusted ?? false,
+  },
+  execute: async (args) => {
+    // The tier engine, not the tool. A commit-tier call returns a handle here
+    // and changes nothing until a person clicks Approve.
+    const outcome = await runRoomTool({ store, tool, me, isSteward, args: args ?? {} })
+    return {
+      content: [{ type: 'text', text: outcome.text }],
+      ...(outcome.data !== undefined ? { structuredContent: outcome.data } : {}),
+    }
+  },
+}, { signal: ac.signal })
+```
+
+Removing a tool is `ac.abort()`, and mount() diffs the surface tool by tool so
+approving a new source adds four tools without the other twenty-one blinking
+out and back. Calling one is `mc.executeTool(handle, argsJson)`, where the
+handle comes from `mc.getTools()`. On this Chrome build both of those still
+speak strings rather than objects, which [docs/WEBMCP-NOTES.md](docs/WEBMCP-NOTES.md)
+measures.
+
 ## The agent in the page
 
 The site hosts its own agent, and it matters that it does.
