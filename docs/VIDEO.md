@@ -31,17 +31,29 @@ Every segment is exactly as long as the voice measured. The picture is cut to
 
 ## The cut
 
+Every segment is as long as its narration measured, so the table is the
+narration's timing file rendered as prose.
+
 | Segment | Length | On screen |
 |---|---|---|
-| what | 16.3s | title card |
+| what | 5.5s | title card |
 | make | 9.2s | the lobby, a room being made |
-| crowd | 20.5s | three people, three agents, one log |
-| private | 11.0s | work tier staying in one browser |
+| crowd | 25.4s | three people, three agents, one log |
+| private | 11.4s | work tier staying in one browser |
+| computer | 22.1s | the agent writes a script, runs it, shares it by choice |
+| console | 14.7s | the person types into the same machine; the manager sees counts and a stuck signal |
 | commit | 23.7s | publish parks, nothing ships |
-| approve | 8.3s | a person clicking it |
+| approve | 6.6s | a person clicking it |
 | signal | 14.0s | four diagnostics, one product bug |
-| honest | 17.2s | title card, what we found |
-| close | 16.8s | the self test, ten of ten |
+| honest | 7.9s | title card, what we found |
+| close | 21.7s | the self test, eighteen of eighteen, then the mark |
+
+The console segment is three cuts of one capture. The typing plays at speed,
+the output is held from the moment the machine answered (the wait in between
+was the sandbox waking, which shows nothing), and the manager's page is shown
+from the moment its table had rendered. Dan's three failures were made off
+camera through the same `computer_run` tool, which is the only way anything
+reaches the log.
 
 ## Before uploading
 

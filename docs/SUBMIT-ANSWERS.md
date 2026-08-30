@@ -37,6 +37,23 @@ Watch Ella's agent draft privately, submit one version, and ask to publish. The
 publish will not publish. It returns a handle and parks. Switch to the manager
 window and approve it.
 
+Then give Ella's agent its computer:
+
+    On your computer, save the pricing explainer brief to brief.txt, write a
+    Python script that counts the words in it, run the script, then share the
+    script to the board.
+
+The manager's log shows that files were written and a command ran, with the
+exit code, and never the script or its output. Under "On this machine" in
+Ella's window there is a console into the same computer: type `ls -la` and it
+runs through the same computer_run tool, so the manager's log gets one more
+line and nothing else. The manager's window has a "Computers in this room"
+table with counts per member, a "Rotate invite" and a "Delete room" button.
+
+The room switcher at the top holds five rooms. "Order desk" was generated
+from an OpenAPI file by `npm run generate`; its refund and cancel tools park
+for the desk lead the same way publish does.
+
 Two pages test the claims without any agent at all:
 
 - /selftest.html calls every tool through document.modelContext.executeTool()
