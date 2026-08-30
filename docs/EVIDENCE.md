@@ -73,7 +73,7 @@ before we did. It is corrected rather than deleted, for the same reason the
 `getTools()` correction in LIMITS.md is.
 
 ![The ablation page after a run. Tier engine 0 of 5, description only 5 of 5,
-with each trial's transcript below.](media/06-tier-ablation.png)
+with each trial's transcript below.](media/08-tier-ablation.png)
 
 An earlier run on 2026-08-29, five trials per arm, agreed exactly and is also
 committed: [`evidence/ablation-2026-08-29.json`](evidence/ablation-2026-08-29.json).

@@ -9,7 +9,7 @@ Film (2:53): https://youtu.be/c9gOER5Djeo
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
 ![A campaign room with four people in it. The work log shows Dan, Ella and Ava
-making tool calls, each marked local or shared.](docs/media/01-room-four-people.jpg)
+making tool calls, each marked local or shared.](docs/media/04-borrowed-tools-landed.png)
 
 Four people, four agents, one log. `local` calls kept their payload in the
 member's own browser. The room was told that Ella drafted twice. It was not told
@@ -242,44 +242,61 @@ purpose.
 
 ## What it looks like
 
-![A member's view. The chat panel shows work, work, share and commit chips, and
-a banner says one action is waiting on approval.](docs/media/02-tiers-and-parked-approval.jpg)
+![The manager's first screen: one action waiting, and the approval card carries
+the headline, the words that would ship, and the brief.](docs/media/01-approval-with-the-words.png)
 
-Dan's agent drafted twice, submitted one, and asked to publish. The publish did
-not publish. It returned a handle and parked, and the banner says what the rest
-of the product will not do for you: only a person in this room can approve, and
-no agent has that tool.
+Ella's agent drafted twice, submitted one, and asked to publish. The publish did
+not publish. It returned a handle and parked, and the card shows the manager the
+thing itself, not its title. Only a person in this room can approve, and no
+agent has that tool.
 
-![The steward's view after approving. The work log's last two lines are a commit
-call and then the same tool run by a person.](docs/media/03-approved-by-a-person.jpg)
+![A member's console into their own computer: a command, its output, and in the
+work log one line saying it ran, with the output nowhere on the
+board.](docs/media/02-console.png)
 
-The same story from the manager's side, after she clicked. The last two lines of
-the log are the whole mechanic: `commit publish asked to publish`, then
-`person publish published`.
+The person and their agent share one machine and one log. What you type here
+goes through the same `computer_run` tool the agent uses, so the room gets one
+line and never the output.
+
+![The manager's view of the computers: counts per member, and a banner saying
+Dan's agent has failed four commands in a
+row.](docs/media/03-computers-and-a-stuck-signal.png)
+
+Counts, never contents. When somebody's agent gets stuck the room says so, and
+the manager can go and ask rather than read over a shoulder.
+
+![Eleven tools in the header, four of them borrowed from an order desk API, and
+a log line reading: Grace, person, added 4 tools from Harbour Foods order
+desk.](docs/media/04-borrowed-tools-landed.png)
+
+A member's agent proposed a source and nothing registered. A person approved,
+and in that instant every browser in the room had four more tools. That is what
+a live tool surface is for.
+
+![An approval card signed Codex, asking to publish, with the words it would ship
+underneath.](docs/media/05-codex-parked.png)
+
+Not our agent. Codex, joined from somebody's own terminal through the MCP
+bridge, parked by the same approval a person clicks.
+
+![The connect-your-own-agent panel, showing the claude and codex commands with
+this room's link already in them.](docs/media/06-connect-your-own-agent.png)
+
+Under **Your agent**, on either side of the room.
 
 ![A support desk room. A banner reads: this is not a support problem, export has
-failed 3 times across different tickets.](docs/media/04-signal-support-desk.jpg)
+failed 3 times across different tickets.](docs/media/07-support-desk-signal.png)
 
 The same engine, running a support desk. Three tickets, three failed diagnostics,
 one product bug. Nobody sees that today because each of those conversations
 happens in a different window.
 
-![The manager's first screen: one action waiting, and the approval card shows
-the headline, the words and the brief, not just a title.](docs/media/11-approval-with-the-words.png)
+![The ablation page: tier engine 0 of 8, description only 8 of
+8.](docs/media/08-tier-ablation.png)
 
-![The front door, offering a one click demo room.](docs/media/05-front-door.png)
+![The self test: 22 of 22 passed on document.modelContext.](docs/media/09-selftest-22.png)
 
-![The agent's own computer: it wrote a script, ran it twice, and shared it to
-the board by choice. The manager's log has exit codes and sizes, never the
-script.](docs/media/10-agent-computer.jpg)
-
-![A member's console into their own computer: a command, its output, and in
-the work log one line saying it ran, with the output nowhere on the
-board.](docs/media/08-console.png)
-
-![The manager's view of the computers: a table of counts per member, a
-signal that Dan's agent has failed three commands in a row, and buttons to
-rotate the invite or delete the room.](docs/media/09-steward-computers.png)
+![The front door, offering a one click demo room.](docs/media/10-front-door.png)
 
 The front door. **Open the demo room** puts you in as the manager and opens a
 second window as one of your team, so both halves of the room are in front of
