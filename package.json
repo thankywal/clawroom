@@ -10,7 +10,8 @@
     "verify": "node scripts/verify.mjs",
     "ablate": "node scripts/ablate.mjs https://clawroom.thankywal-bkk.workers.dev/ablate.html?auto=1&n=5",
     "foreign": "node scripts/foreign-agent.mjs",
-    "generate": "node scripts/generate-room.mjs"
+    "generate": "node scripts/generate-room.mjs",
+    "room": "node scripts/new-room.mjs"
   },
   "devDependencies": {
     "@cloudflare/puppeteer": "^1.4.0",

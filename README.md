@@ -128,9 +128,18 @@ why a page that registers its own WebMCP tools can be seen but not called.
 A coding agent that speaks MCP can join a room:
 
 ```
-claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
-codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+npm run room     # makes a room, prints both links and the command to paste
 ```
+
+```
+claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
+codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
+```
+
+Give it the member link, not the steward one: the steward is the person who
+approves. Codex asks to allow each tool the first time in its interactive CLI;
+`codex exec` needs `--approve-for-me`, because its default approval policy
+refuses MCP calls outright.
 
 `scripts/clawroom-mcp.mjs` holds no tools. It opens the room in a real Chrome,
 lists what the page registered with `getTools()`, and calls it with

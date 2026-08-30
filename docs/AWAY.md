@@ -20,8 +20,22 @@ forwarded once per request; nothing stores it. See LIMITS.md.
 
 ## 3. Your machine, your coding agent
 
-    claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
-    codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+    npm run room
+
+That makes a room and prints both links plus the exact command to paste. Or by
+hand:
+
+    claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
+    codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
+
+Give it the **member** link. The steward link is the person who approves, and
+an agent holding it gets five read-only tools and nothing to do.
+
+In Codex's interactive CLI you will be asked to allow each tool the first time,
+which is the normal path. `codex exec` defaults to an approval policy of
+`never` and refuses MCP calls outright with *"MCP tool call requires approval,
+but approval policy is never"*, so non-interactive runs need
+`--approve-for-me`.
 
 The bridge holds no tools. It opens the room in a real Chrome and passes
 `getTools()` and `executeTool()` through. Your agent is whatever you already
