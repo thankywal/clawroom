@@ -115,7 +115,7 @@ Reported honestly: the guarded arm scores zero because it cannot do otherwise, w
 
 A client that has never seen this code also drove a room. `scripts/foreign-agent.mjs` attaches from outside the browser, imports nothing from `src/`, and learns the room only through `getTools()`: name, description, and an `inputSchema` it has to parse from a string. It drafted twice, submitted, asked to publish, was parked, checked once, and reported that nothing had shipped. The client is mine, so this is not a third-party product; only its ignorance is guaranteed. It does show that the descriptions carry enough for a stranger, and that the surface is the standard one.
 
-`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **10 of 10** against the deployed origin in a clean Chrome profile with no flags. Two of those cases test the claim rather than a function: one writes a sentinel sentence into a private draft and searches all of shared state for it, and the other calls publish, checks the board did not move, approves as a human, and only then expects the effect.
+`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **14 of 14** against the deployed origin in a clean Chrome profile with no flags. Four of those cases test the claim rather than a function. One writes a sentinel sentence into a private draft and searches all of shared state for it. One calls publish, checks the board did not move, approves as a human, and only then expects the effect. And two do the same for the computer: a canary sentence goes into a file, `cat` reads it back, shared state is searched and holds nothing, and only `computer_share_file` puts it on the board.
 
 ## What I found out about the ecosystem
 

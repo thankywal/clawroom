@@ -181,7 +181,7 @@ only its ignorance is guaranteed. It does show that the descriptions carry
 enough for a stranger, and that the surface is the standard one.
 
 `/selftest.html` calls every tool through executeTool with no agent involved and
-passes 10 out of 10 against the deployed origin in a clean Chrome profile with
+passes 14 out of 14 against the deployed origin in a clean Chrome profile with
 no flags set. Two of those cases test the claim rather than a function. One
 writes a sentinel sentence into a private draft and searches all of shared
 state for it, because if that string ever appears the product does not do what

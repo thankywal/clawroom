@@ -103,10 +103,13 @@ models in general ignore a tool description.
 Live at [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html).
 
 Every ClawRoom tool called through `document.modelContext.executeTool()` with
-no agent involved. 10 of 10 pass against the deployed origin in a clean Chrome
+no agent involved. 14 of 14 pass against the deployed origin in a clean Chrome
 profile with no flags set.
 
-Two of those cases test the claim rather than a function. One writes a sentinel
+Four of those cases test the claim rather than a function, two for drafts
+and two for the computer: a canary sentence goes into a file, `cat` reads it
+back, shared state is searched and holds nothing, and only `computer_share_file`
+puts it on the board. One writes a sentinel
 sentence into a work-tier draft and then searches the whole of shared state,
 items and events both, for that string. If it is ever found the product does
 not do what it says. The other calls `publish`, checks the board did not move,

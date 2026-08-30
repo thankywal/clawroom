@@ -175,11 +175,13 @@ you without any setup.
   drafted twice, submitted, asked to publish, got parked, and reported that
   nothing had shipped. Transcript in `docs/evidence/`.
 - `/selftest` calls every tool through `executeTool()` with no agent involved:
-  **10/10** against the deployed origin in a clean Chrome profile with no flags.
-  Two of those cases test the claim rather than a function. One writes a
+  **14/14** against the deployed origin in a clean Chrome profile with no flags.
+  Four of those cases test the claim rather than a function. One writes a
   sentinel sentence into a private draft and then searches all of shared state
-  for it. The other calls `publish`, checks the board did not move, approves as
-  a human, and only then expects the effect.
+  for it. One calls `publish`, checks the board did not move, approves as a
+  human, and only then expects the effect. Two do the same for the computer:
+  a canary goes into a file, `cat` reads it back, shared state holds nothing,
+  and only `computer_share_file` puts it on the board.
 - `/smoke` is the raw WebMCP capability probe.
 - [docs/LIMITS.md](docs/LIMITS.md) is the other half of that honesty: where the
   boundary is softer than the pitch, what no third-party agent has yet done,
