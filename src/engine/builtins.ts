@@ -10,6 +10,7 @@
 
 import type { RoomTool } from '../types.js'
 import type { RoomStore } from './store.js'
+import { findItem } from './find.js'
 import { evaluateSignals, computerUsage } from './signals.js'
 import { computerTools } from './computer.js'
 import { sourceAdminTools, sourceTools } from './sources.js'
@@ -141,7 +142,7 @@ export function builtinStewardTools(store: RoomStore): RoomTool[] {
         // Including what each one would actually do. A queue that lists titles
         // teaches the steward's agent to recommend things it has not read.
         const lines = ctx.room.approvals.map(a => {
-          const item = a.item ? ctx.room.items.find(i => i.id === a.item) : undefined
+          const item = a.item ? findItem(ctx.room.items, a.item) : undefined
           const body = (item?.body ?? {}) as Record<string, unknown>
           const words = ['submitted', 'headline', 'reply', 'answer', 'brief']
             .map(k => body[k])
@@ -180,7 +181,7 @@ export function builtinStewardTools(store: RoomStore): RoomTool[] {
         const handle = String(args['handle'] ?? '')
         const a = ctx.room.approvals.find(x => x.id === handle)
         if (!a) return { text: `Nothing called ${handle} is waiting.`, summary: `looked for ${handle}` }
-        const item = a.item ? ctx.room.items.find(i => i.id === a.item) : undefined
+        const item = a.item ? findItem(ctx.room.items, a.item) : undefined
         const body = (item?.body ?? {}) as Record<string, unknown>
         const words = ['headline', 'submitted', 'reply', 'answer', 'brief']
           .map(k => (typeof body[k] === 'string' && body[k] ? `${k}: ${String(body[k])}` : null))

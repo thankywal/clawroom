@@ -8,6 +8,7 @@
 
 import type { Approval, Event, Person, RoomDefinition, WorkItem } from '../types.js'
 import type { RoomStore } from '../engine/store.js'
+import { findItem } from '../engine/find.js'
 import { createStore } from '../engine/store.js'
 import { createToolHost, namespaceName } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
@@ -158,7 +159,7 @@ function bridgeCommands(): string {
 }
 
 function approvalBody(a: Approval): string {
-  const item = a.item ? store.state.items.find(i => i.id === a.item) : undefined
+  const item = a.item ? findItem(store.state.items, a.item) : undefined
   const body = (item?.body ?? {}) as Record<string, unknown>
   const parts: { label: string; text: string }[] = []
 

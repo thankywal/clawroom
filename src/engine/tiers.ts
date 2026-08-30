@@ -15,6 +15,7 @@
 //   commit  nothing happens at all until a human approves.
 
 import { builtinMemberTools, builtinStewardTools } from './builtins.js'
+import { findItem } from './find.js'
 import type {
   Approval, Event, Person, RoomDefinition, RoomState, RoomTool, ToolContext,
   ToolOutcome, WorkItem,
@@ -101,7 +102,22 @@ export async function runRoomTool(a: {
 
   const outcome = await tool.run(ctx, args)
   const summary = outcome.summary ?? outcome.text
-  const item = typeof args['itemId'] === 'string' ? args['itemId'] : undefined
+
+  // The reference a model passes and the id the board holds are rarely the
+  // same string. A room seeded from campaign.ts calls its first post post_1 in
+  // the tool description and w_1 in the store, and every tool that acts on an
+  // item already resolves that through findItem. What is written into the log
+  // and into the approval has to be the resolved id too, or an approval card
+  // looks up w_1 by the name post_1, finds nothing, and shows the approver a
+  // headline with none of the words under it. That is the exact failure this
+  // design exists to avoid, so the id is resolved once, here, for everyone.
+  const ref = args['itemId']
+  // collect first, because a share-tier tool that just created the item has it
+  // there and not yet in the store.
+  const item = ref === undefined || ref === null || ref === ''
+    ? undefined
+    : (findItem([...collect, ...store.state.items], ref)?.id
+       ?? (typeof ref === 'string' ? ref : undefined))
 
   if (!commit) {
     for (const w of collect) store.dispatch({ k: 'item', item: w })
