@@ -11,19 +11,17 @@ Code (MIT): https://github.com/thankywal/clawroom
 Devpost: https://devpost.com/software/clawroom
 
 Chapters
-0:00 Git for agent work
-0:06 Making a room
+0:00 Git for agent work, and making a room
 0:15 Four people, four agents, one log
 0:29 Work tier: the words stay with the person
 0:41 A computer for every agent
 0:57 The console, and the manager's view
 1:12 Commit tier: parked until a person approves
 1:28 Only a person can approve
-1:38 Somebody else's agent, in the room
+1:39 Somebody else's agent, in the room
 1:52 An approval that changes what the room can do
 2:10 The support desk signal
-2:25 What Chrome's assistant did
-2:34 Every tool, no agent, no flags
+2:25 What Chrome's assistant did, and every tool with no agent
 
 Bring your own agent: Claude Code and Codex have both joined a room through the MCP bridge, drafted privately, submitted, asked to publish, and been parked by the same approval a person clicks.
 
