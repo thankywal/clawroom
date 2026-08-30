@@ -1,10 +1,10 @@
 TITLE
-ClawRoom: git for agent work, and a computer for every agent (WebMCP)
+ClawRoom: git for agent work, a computer for every agent (WebMCP)
 
 DESCRIPTION
-A shared room where each person brings their own AI agent. Every tool call lands in a shared log like a commit, nothing irreversible ships without a person, and every agent gets a Linux computer of its own that the room cannot see inside.
+A shared room where everyone brings their own AI agent. Every tool call lands in a log the whole room reads like a commit, every agent gets a Linux computer of its own that the room cannot see inside, and nothing irreversible ships until a person approves it.
 
-Built on WebMCP (document.modelContext) for The WebMCP Challenge. Everything in this film is the deployed product driving real tool calls; nothing is mocked.
+Built on WebMCP (document.modelContext) for The WebMCP Challenge. Everything in this film is the deployed product making real tool calls. Nothing is mocked, and the one shot the film did not cause is a real Codex run read out of the room it happened in.
 
 Try it, no signup, no flags: https://clawroom.thankywal-bkk.workers.dev
 Code (MIT): https://github.com/thankywal/clawroom
@@ -25,6 +25,6 @@ Chapters
 2:25 What Chrome's assistant did
 2:34 Every tool, no agent, no flags
 
-Claude Code and Codex have both joined a room through the MCP bridge and been parked by the same approval a person clicks.
+Bring your own agent: Claude Code and Codex have both joined a room through the MCP bridge, drafted privately, submitted, asked to publish, and been parked by the same approval a person clicks.
 
-Evidence: the tier engine ablated over 28 adversarial trials (0/28 published with it, 28/28 without), a self test of 18 cases through executeTool() with no agent, and a foreign agent that learns the room only through getTools().
+Evidence, all rerunnable from the site: the tier engine ablated across eight trials per arm, where the model called the commit-tier tool in all sixteen and published 0/8 with the engine and 8/8 without it; a self test of 22 cases through executeTool() with no agent involved; and a foreign client that learns the room only through getTools().
