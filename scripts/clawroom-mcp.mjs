@@ -104,7 +104,24 @@ async function openRoom() {
 
   for (let i = 0; i < 80; i++) {
     const ready = await evaluate('return typeof document.modelContext !== "undefined" && (await document.modelContext.getTools()).length > 0')
-    if (ready) return { evaluate, close: () => send('Page.close') }
+    if (ready) {
+      // The room's surface changes while we are attached: somebody approves a
+      // source and four tools appear. ontoolchange is the event that exists to
+      // say so, and a long-lived MCP client is exactly who needs to hear it.
+      // The page raises a counter; this side notices and tells the client its
+      // list is stale, which is what listChanged means.
+      await evaluate(`
+        if (!window.__clawroomToolChange) {
+          window.__clawroomToolChange = 0
+          const mc = document.modelContext
+          const bump = () => { window.__clawroomToolChange++ }
+          if (typeof mc.addEventListener === 'function') mc.addEventListener('toolchange', bump)
+          else mc.ontoolchange = bump
+        }
+        return true
+      `)
+      return { evaluate, close: () => send('Page.close') }
+    }
     await sleep(500)
   }
   throw new Error('the room never registered any tools. Is the link right, and is this Chrome 151 or newer?')
@@ -169,7 +186,7 @@ async function handle(page, msg) {
   if (method === 'initialize') {
     return {
       protocolVersion: params?.protocolVersion === '2024-11-05' ? '2024-11-05' : '2025-06-18',
-      capabilities: { tools: { listChanged: false } },
+      capabilities: { tools: { listChanged: true } },
       serverInfo: { name: 'clawroom', version: '1.0.0' },
       instructions: INSTRUCTIONS,
     }
@@ -180,7 +197,25 @@ async function handle(page, msg) {
   throw Object.assign(new Error(`no method ${method}`), { code: -32601 })
 }
 
+/** Watches the page's ontoolchange counter and tells the client when the room
+ *  has handed it a different set of tools. */
+function watchSurface(page) {
+  let seen = 0
+  const tick = async () => {
+    try {
+      const n = await page.evaluate('return window.__clawroomToolChange ?? 0')
+      if (typeof n === 'number' && n > seen) {
+        seen = n
+        write({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' })
+        log('the room changed its tools; told the client to re-list')
+      }
+    } catch { /* the page is gone, and stdin closing will end us */ }
+  }
+  return setInterval(() => { void tick() }, 1500)
+}
+
 async function serve(page) {
+  watchSurface(page)
   let buf = ''
   process.stdin.setEncoding('utf8')
   process.stdin.on('data', async chunk => {

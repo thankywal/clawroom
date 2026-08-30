@@ -144,7 +144,7 @@ function render(): void {
       )
       const meta = await roomMeta(room.roomId, room.secret)
       if (second) {
-        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella`
+        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella&seed=1`
         else second.close()
       }
       location.href = roomLink(room.roomId, room.secret)

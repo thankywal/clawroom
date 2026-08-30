@@ -138,6 +138,45 @@ is no error. `worker/llm.ts` reads both, and synthesises call ids, since the
 flat shape has none.
 
 
+## Chrome 151 keeps two annotation hints and drops three (measured 2026-08-30)
+
+Registered a probe tool with all five hints the spec names, then read it back:
+
+    registerTool({ ..., annotations: {
+      readOnlyHint: true, destructiveHint: true, idempotentHint: true,
+      openWorldHint: true, untrustedContentHint: true } })
+
+    getTools() -> annotations: { readOnlyHint: true, untrustedContentHint: true }
+
+`destructiveHint`, `idempotentHint` and `openWorldHint` are dropped silently.
+For an app built on "this action cannot be taken back" that is the most
+relevant one missing: a page has no way to tell a model, through the API,
+that a tool is destructive. This project says it in the description instead,
+and enforces it in code, which is the right answer anyway. But a client that
+reads only annotations cannot see it.
+
+Worth knowing if you consume a remote MCP server: `worker/source.ts` reads
+`destructiveHint` off imported tools and uses it to pick a tier. That works
+because it happens before registration. Anything downstream of `getTools()`
+will not see it.
+
+## getTools({ fromOrigins }) does not throw, it quietly ignores you (2026-08-30)
+
+    await mc.getTools({ fromOrigins: ['https://example.com'] })
+    -> the five local tools, unfiltered
+    mc.getTools.length === 0
+
+Chrome 151 takes no arguments at all, so a filter is not rejected, it is
+discarded, and the caller gets a plausible wrong answer instead of an error.
+An earlier version of our writeup said the option "is in the spec but not in
+Chrome 151", which understates it: absent would be safer than ignored.
+
+## Chrome 151 has a title field and it works (2026-08-30)
+
+`registerTool({ title: 'A title here', ... })` round-trips through
+`getTools()`. Every tool this project registers now sets one, because a tool
+picker showing bare `snake_case` is a picker nobody can read.
+
 ## Cloudflare Browser Rendering has no WebMCP (measured 2026-08-30)
 
 A site that runs on Cloudflare and wants to offer "run my agent in the cloud"

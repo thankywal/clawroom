@@ -55,6 +55,13 @@ export function rehearsedPlan(defId: string): RehearsedCall[] {
   return PLANS[defId] ?? []
 }
 
+/** Why the room ran a sequence nobody typed. Two honest reasons, and the
+ *  page says which one out loud before the first call. */
+export const DEMO_NOTE =
+  'This room opened with a short sequence already run, so the manager next door lands on a ' +
+  'room with a history instead of an empty page. The calls below are real and went through ' +
+  'executeTool, the log and the approval are real. Ask for something of your own below.'
+
 export const REHEARSAL_NOTE =
   "The model's free allowance for today is spent, so what follows is rehearsed " +
   'rather than decided. The tool calls below are real and go through ' +

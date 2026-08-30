@@ -58,9 +58,16 @@ const memberTools: RoomTool[] = [
     run: (ctx, args) => {
       const item = findItem(ctx.room.items, args['itemId'])
       if (!item) return { text: `No post called ${String(args['itemId'])}.` }
+      // A missing argument used to become the string "undefined" and ride all
+      // the way to the board, where a person would be asked to approve it.
+      const headline = typeof args['headline'] === 'string' ? args['headline'].trim() : ''
+      const copy = typeof args['copy'] === 'string' ? args['copy'].trim() : ''
+      if (!headline || !copy) {
+        return { text: 'A draft needs both a headline and copy. Call it again with each of them written out.' }
+      }
       const key = `draft:${item.id}`
       const prior = (ctx.scratch.get(key) as { headline: string; copy: string }[] | undefined) ?? []
-      const next = [...prior, { headline: String(args['headline']), copy: String(args['copy']) }]
+      const next = [...prior, { headline, copy }]
       ctx.scratch.set(key, next)
       return {
         text: `Saved variant ${next.length} for ${item.title}. It is on this machine only. ` +

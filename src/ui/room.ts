@@ -19,7 +19,7 @@ import { addSourceAsHuman, inspectSource, removeSource, sourceFingerprint, sourc
 import { roomById } from '../rooms/index.js'
 import { answerDoor, deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, setDoor, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
-import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
+import { DEMO_NOTE, REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
 import { PRESETS, providerLabel, saveProvider, savedProvider } from '../agent/provider.js'
 import { resolveModelContext } from '../engine/webmcp.js'
 
@@ -32,6 +32,7 @@ let sourceDraft: { url: string; busy: boolean; parsed?: any; error?: string } | 
 let modelOpen = false
 /** Set when this browser is outside a door that is set to ask. */
 let waitingOutside = false
+let seeded = false
 let door: 'open' | 'ask' = 'open'
 let knocking: Knocker[] = []
 let sourcePrint = ''
@@ -616,12 +617,12 @@ function chatLine(l: Line): string {
  * Only the choice of calls is scripted, and the note says so before the first
  * one runs.
  */
-async function runRehearsal(): Promise<void> {
+async function runRehearsal(note = REHEARSAL_NOTE): Promise<void> {
   const mc = resolveModelContext()
   const plan = rehearsedPlan(def.id)
   if (!mc || isSteward || !plan.length) return
 
-  chat.push({ k: 'note', text: REHEARSAL_NOTE })
+  chat.push({ k: 'note', text: note })
   thinking = true
   render()
 
@@ -741,6 +742,15 @@ async function connect(): Promise<void> {
       store.seedIfFirst(w.first, pending)
       if (w.first) localStorage.removeItem(`clawroom:pending:${roomId}`)
       render()
+
+      // The one click demo opens two windows. This one runs a short real
+      // sequence so the manager's window has something to read the moment
+      // they look at it, rather than a page that says "Nothing yet". A judge
+      // who leaves before the first tool call never sees the product.
+      if (new URLSearchParams(location.search).has('seed') && !seeded) {
+        seeded = true
+        setTimeout(() => { void runRehearsal(DEMO_NOTE) }, 900)
+      }
     },
     onDenied: () => { denied = true; render() },
     onRefused: need => {
