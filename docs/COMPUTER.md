@@ -33,12 +33,73 @@ share tier doing what it does everywhere else in the engine.
 | `computer_read_file` | work | that a file was read |
 | `computer_list_files` | work | that a listing happened, how many entries |
 | `computer_share_file` | share | the whole file, on the board, by choice |
+| `computer_serve` | work | that a program was started and whether its port came up |
+| `computer_processes` | work | that the list was read, or that a process was stopped |
+| `computer_fetch_local` | work | that a local port was checked, and the HTTP status |
+| `computer_share_page` | share | the whole page a local server is showing, on the board, by choice |
+| `computer_browse` | work | that a public web page was read, its status and length, not the URL |
+| `computer_snapshot` | work | that a snapshot was saved, and its size |
+| `computer_restore` | work | that the workspace was put back, or that the list was read |
 
 They are built in to every room, the way `check_approval` is. A classroom's
 student agent can work an answer out in Python before submitting it. A support
 rep's agent can reproduce a bug in a scratch script. A marketer's agent can
 render a chart. None of that is visible to the room until a share-tier tool
 says so.
+
+## Servers, pages and the moment they go public
+
+`computer_serve` starts a program in the background and waits for the port it
+names, so an agent can build a small site or an API and keep it running
+while it works on something else. `computer_fetch_local` reads what that
+server shows, from inside the machine, and the reply goes to the agent that
+asked. Neither is visible to anyone else. `computer_share_page` is the share
+tier version of the same fetch: the page lands on the board with its HTML,
+and the room learns the port and the size. The tool's description tells the
+agent that this is the moment the page stops being private, in the same words
+`computer_share_file` uses for a file.
+
+Nothing is exposed on a public URL. That was a deliberate choice rather than a
+gap: a preview link that anyone holding it can open is a fourth tier the
+engine does not have, and the board already is the place where shared things
+go.
+
+## A browser
+
+`computer_browse` opens a public URL in Cloudflare's Browser Rendering, waits
+for the document, and returns the title and the visible text. It is work
+tier and marked `untrusted`, so the steward's agent is told the text came
+from outside the room. The log line says a page was read and how long it was.
+It does not say which page, for the same reason it does not say what a
+command printed.
+
+## Snapshots
+
+`computer_snapshot` tars `/workspace` into `/snapshots/<name>.tgz` on the same
+machine and `computer_restore` puts it back, replacing whatever is there.
+Both are work tier, both stay inside the sandbox, and the self test proves
+the round trip: write a canary, snapshot, delete the workspace, restore, read
+the canary back.
+
+## The console
+
+Under "On this machine" every member has a console. What a person types there
+runs through the same `computer_run` tool their agent uses, over
+`executeTool()`, so it lands in the same log as one line. A person and their
+agent share one machine and one audit trail, and the room cannot tell from the
+log which of them typed.
+
+## What the steward gets
+
+The steward never gets a computer, because the steward never does the work.
+What they get is `computer_usage`, a tool and a table with counts per member:
+commands run, commands that failed, files written, things shared. A signal
+fires when one member has failed three commands in a row, which is the shape
+of someone stuck, and the steward can go and ask. They can also rotate the
+invite link, which closes every member connection and mints a new key, and
+delete the room, which wipes its history on the server. Deleting a room does
+not destroy the sandboxes; those belong to the browsers that made them, and
+each member's "Delete everything the room never had" button does that.
 
 ## Who can reach a sandbox
 
@@ -66,9 +127,10 @@ containers. That is a weaker promise than the draft-in-localStorage one, and
 is every agent's working files passing through the room's server as a matter
 of course.
 
-Commands are capped at twenty seconds, files at 64 KB, output at 8 KB. The
-instance is Cloudflare's smallest. This is a computer for thinking with, not
-for training a model on.
+Commands are capped at twenty seconds, files at 64 KB, output at 8 KB, a
+fetched page at 8 KB and a browsed page at 12,000 characters. Background
+processes live as long as the sandbox is awake. The instance is Cloudflare's
+smallest. This is a computer for thinking with, not for training a model on.
 
 ## Cost
 

@@ -162,6 +162,39 @@ async function main(): Promise<void> {
       Boolean(onBoard) && JSON.stringify(onBoard?.body).includes(CANARY),
       `${shared.text} | on board: ${onBoard ? 'yes' : 'no'}`,
     )
+
+    // A server that keeps running, a page fetched from inside the machine,
+    // and the moment that page is chosen for the board.
+    const PAGE = 'page sentence that stays behind the port until shared'
+    await call('computer_write_file', { path: 'site/index.html', content: `<h1>Pricing</h1><p>${PAGE}</p>` })
+    const served = await call('computer_serve', { command: 'python3 -m http.server 8000 -d site', port: 8000 })
+    report('computer_serve', 'work, a background process', /listening on port 8000/.test(served.text), served.text)
+    const fetched = await call('computer_fetch_local', { port: 8000, path: '/' })
+    const leaked3 = JSON.stringify({ items: store.state.items, events: store.state.events })
+    report(
+      'computer_fetch_local', 'work, on your machine',
+      /HTTP 200/.test(fetched.text) && fetched.text.includes(PAGE) && !leaked3.includes(PAGE),
+      `${fetched.text.split('\n')[0]} | page in shared state: ${leaked3.includes(PAGE) ? 'YES, FAILED' : 'no'}`,
+    )
+    const page = await call('computer_share_page', { port: 8000, path: '/', title: 'Pricing page' })
+    const pageItem = store.state.items.find(i => i.id.startsWith('page_8000'))
+    report(
+      'computer_share_page', 'share, by choice',
+      Boolean(pageItem) && JSON.stringify(pageItem?.body).includes(PAGE),
+      `${page.text} | on board: ${pageItem ? 'yes' : 'no'}`,
+    )
+
+    // Snapshot, destroy the workspace, restore, and the canary is back.
+    const snap = await call('computer_snapshot', { name: 'selftest' })
+    await call('computer_run', { command: 'rm -rf /workspace/notes.md /workspace/site' })
+    const gone = await call('computer_read_file', { path: 'notes.md' })
+    const restored = await call('computer_restore', { name: 'selftest' })
+    const back = await call('computer_read_file', { path: 'notes.md' })
+    report(
+      'computer_snapshot and computer_restore', 'work, on your machine',
+      /Saved snapshot/.test(snap.text) && !gone.text.includes(CANARY) && /Restored/.test(restored.text) && back.text.includes(CANARY),
+      `${snap.text} | after rm: ${gone.text.includes(CANARY) ? 'still there?!' : 'gone'} | ${restored.text} | after restore: ${back.text.includes(CANARY) ? 'canary is back' : 'MISSING'}`,
+    )
   }
 
   // 8. the steward's view, and what it cannot see

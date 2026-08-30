@@ -78,6 +78,20 @@ output or the file. `computer_share_file` is share tier and says so in its
 description, because the moment a file lands on the board is the moment it
 stops being private, and the agent should choose that moment knowingly.
 
+The machine is a real one. `computer_serve` keeps a program running in the
+background and waits for its port, `computer_fetch_local` reads what it
+serves, and `computer_share_page` puts that page on the board, which is the
+one moment it stops being private. `computer_browse` opens a public URL in a
+real browser and returns the text, marked untrusted. `computer_snapshot` and
+`computer_restore` keep tarballs of the workspace inside the sandbox. And a
+console under "On this machine" lets the person type into the same computer
+through the same `computer_run` tool, so a person and their agent share one
+machine and one log.
+
+The steward gets none of that, because the steward never does the work. They
+get counts per member, a signal when someone has failed three commands in a
+row, a button that rotates the invite link and one that deletes the room.
+
 One sandbox per person per room, addressed by a secret only that person's
 browser holds, asleep when idle. [docs/COMPUTER.md](docs/COMPUTER.md) has the
 boundary, and the part of it that is weaker than the draft-in-the-browser one.
@@ -175,13 +189,15 @@ you without any setup.
   drafted twice, submitted, asked to publish, got parked, and reported that
   nothing had shipped. Transcript in `docs/evidence/`.
 - `/selftest` calls every tool through `executeTool()` with no agent involved:
-  **14/14** against the deployed origin in a clean Chrome profile with no flags.
-  Four of those cases test the claim rather than a function. One writes a
+  **18/18** against the deployed origin in a clean Chrome profile with no flags.
+  Six of those cases test the claim rather than a function. One writes a
   sentinel sentence into a private draft and then searches all of shared state
   for it. One calls `publish`, checks the board did not move, approves as a
-  human, and only then expects the effect. Two do the same for the computer:
+  human, and only then expects the effect. Four do the same for the computer:
   a canary goes into a file, `cat` reads it back, shared state holds nothing,
-  and only `computer_share_file` puts it on the board.
+  and only `computer_share_file` puts it on the board; a server comes up on a
+  port, the page it serves is fetched and stays out of shared state until
+  `computer_share_page`; and a snapshot survives `rm -rf` of the workspace.
 - `/smoke` is the raw WebMCP capability probe.
 - [docs/LIMITS.md](docs/LIMITS.md) is the other half of that honesty: where the
   boundary is softer than the pitch, what no third-party agent has yet done,
@@ -229,13 +245,24 @@ CDP_PORT=9335 node scripts/verify.mjs \
 ```
 src/engine/    ops and the reducer, the local-first store, tier enforcement,
                builtin tools, signals, the WebMCP tool host, identity
-src/rooms/     one file per workplace
+src/rooms/     one file per workplace (orders.ts was generated from an OpenAPI file)
 src/agent/     the browser-side tool calling loop
 src/sync/      the client half of the room connection
 src/ui/        lobby, room, self-test
 worker/        the router, the LLM proxy, the Durable Object
 docs/          how to write a room, the approval proposal, measured API notes
+scripts/       headless verification, the ablation, the foreign agent, and
+               generate-room.mjs, which turns an OpenAPI document into a room
 ```
+
+`npm run generate -- docs/examples/orders-openapi.json --id orders` reads an
+OpenAPI 3 document and writes a room: every operation becomes a tool, reads are
+work tier, writes are share tier, and anything that sounds irreversible
+(delete, refund, publish, pay, ship) is commit tier and parks for a person. Put
+`x-clawroom-tier` on an operation to choose by hand. The generated room works
+before the API is wired: every call is a dry run that still obeys the tiers,
+fills the log and parks the commit-tier ones, which is the whole point of
+generating the room first. `src/rooms/orders.ts` is the one in the switcher.
 
 The Durable Object stamps a sequence number on each envelope and fans it out.
 It does not know what a room is: definitions never cross the wire, only the key,

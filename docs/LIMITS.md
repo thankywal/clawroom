@@ -111,13 +111,24 @@ meant to be legible rather than clever. We have not measured how often they
 fire on work that was fine, and with rooms this small the honest answer is that
 we could not have.
 
-## Rooms are not deletable and not retained forever
+## Rooms are not retained forever, and deleting one is not the end of it
 
-`Forget` in the lobby removes a room from this browser's list. It does not
-delete the room. The Durable Object keeps the most recent 500 operations and
-drops older ones, so a long-lived room silently loses its early history, and
-there is no endpoint that removes a room outright. Neither behaviour is what a
-real deployment should ship.
+The Durable Object keeps the most recent 500 operations and drops older ones,
+so a long-lived room silently loses its early history. The steward can now
+delete a room, which wipes its history and closes every connection, and
+rotate the invite, which locks out everyone holding the old link. What delete
+does not do is destroy the members' sandboxes: those are addressed by secrets
+that live only in each member's browser, so only that browser can destroy
+them, and a member who never comes back leaves a sandbox that Cloudflare
+keeps until its idle timeout and its stored files after that. A real
+deployment would want a sweep.
+
+## The browser tool reads what the page says, not what the page does
+
+`computer_browse` returns visible text after `domcontentloaded`. Pages that
+render late, need a login, or block headless browsers come back short or
+empty, and the tool says so only by its length. It is a reading tool, not an
+agent inside a browser, and it does not click.
 
 ## What we deliberately did not build
 

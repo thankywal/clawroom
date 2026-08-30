@@ -103,7 +103,7 @@ models in general ignore a tool description.
 Live at [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html).
 
 Every ClawRoom tool called through `document.modelContext.executeTool()` with
-no agent involved. 14 of 14 pass against the deployed origin in a clean Chrome
+no agent involved. 18 of 18 pass against the deployed origin in a clean Chrome
 profile with no flags set.
 
 Four of those cases test the claim rather than a function, two for drafts
@@ -164,6 +164,28 @@ On the first run, before the script had loop detection, the model polled
 naive agent runtime's fault rather than the room's, and the room's receipt had
 told it plainly that polling was one of its options. The script now stops a
 call that repeats with identical arguments and asks the model to report.
+
+## 4. Does the computer do what the tools say?
+
+Every desk operation was probed against the deployed Worker with `curl`, in
+order, on 2026-08-30, using a freshly minted room and a member key:
+
+    write    {"ok":true,"path":"/workspace/site/index.html","bytes":59}
+    start    {"ok":true,"id":"proc_...","pid":72,"port":8000,"listening":true}
+    fetch    {"ok":true,"status":200,"body":"<h1>Harbour Foods pricing</h1>..."}
+    procs    [{"id":"proc_...","command":"python3 -m http.server 8000 -d site","status":"running"}]
+    snapshot {"ok":true,"name":"before","kb":4}
+    wipe     rm -rf site && ls -A  ->  exit 0, nothing listed
+    restore  {"ok":true,"name":"before"}
+    ls -R    site/index.html is back
+    browse   https://example.com/  ->  title "Example Domain", 200, the page text
+    browse   file:///etc/passwd    ->  {"error":"http(s) URLs only"}
+    fetch    path "/../;id"        ->  sanitised to "/..id", HTTP 404 from the server
+    destroy  {"ok":true}
+
+The same sequence runs inside `/selftest.html` through `executeTool()`, which
+is where the 18/18 comes from. What the probe adds is the two refusals, which
+the self test does not exercise.
 
 ## Reproducing
 

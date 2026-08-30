@@ -1,0 +1,32 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Harbour Foods orders", "version": "1.0.0", "description": "The order desk API a small grocer's team works against." },
+  "servers": [{ "url": "https://orders.example.com/v1" }],
+  "paths": {
+    "/orders": {
+      "get": { "operationId": "listOrders", "summary": "List open orders", "parameters": [
+        { "name": "state", "in": "query", "schema": { "type": "string", "enum": ["open", "packed", "shipped"] }, "description": "Only orders in this state" } ] }
+    },
+    "/orders/{id}": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The order number" }],
+      "get": { "operationId": "getOrder", "summary": "Read one order with its lines and address" },
+      "delete": { "operationId": "cancelOrder", "summary": "Cancel an order and release its stock" }
+    },
+    "/orders/{id}/notes": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "post": { "operationId": "addNote", "summary": "Add a note the whole desk can see",
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Note" } } } } }
+    },
+    "/orders/{id}/priority": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "post": { "operationId": "setPriority", "summary": "Move an order up or down the packing queue",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "level": { "type": "string", "enum": ["low", "normal", "rush"] } }, "required": ["level"] } } } } }
+    },
+    "/orders/{id}/refund": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "post": { "operationId": "refundOrder", "summary": "Refund part or all of an order to the customer's card",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "amount": { "type": "number", "description": "In the order currency" }, "reason": { "type": "string" } }, "required": ["amount", "reason"] } } } } }
+    }
+  },
+  "components": { "schemas": { "Note": { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"] } } }
+}

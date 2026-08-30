@@ -51,11 +51,16 @@ The point is not that agents can run code. It is where the code runs and who get
 Ella   local   computer_run          ran `python3 analyse.py` (exit 0, 14 lines out)
 Ella   local   computer_write_file   wrote report.md (2311 bytes)
 Ella   shared  computer_share_file   shared report.md to the board (2311 characters)
+Ella   local   computer_serve        started `python3 -m http.server 8000` on port 8000 (listening)
+Ella   local   computer_browse       read a web page (HTTP 200, 1,204 characters)
+Ella   shared  computer_share_page   shared a page from port 8000 to the board (612 characters)
 ```
 
 The first two lines are what the manager sees. The third is the agent choosing, through a tool whose description says exactly this, to make one file public. A sandbox is addressed by a secret minted in the member's browser and kept in their scratch, so another member holding the same room key cannot reach it. The self-test writes a canary sentence into a file, runs `cat` on it, and searches all of shared state for it before sharing it on purpose.
 
 `docs/COMPUTER.md` has the boundary, including the part that is weaker than a draft in the browser: the sandbox is on Cloudflare, not on the member's laptop. The room cannot read it, the other members cannot, the operator of the site could.
+
+The machine is a real one, not a code runner. An agent can keep a server running in the background (`computer_serve`), read what it shows (`computer_fetch_local`), and choose the moment it goes on the board (`computer_share_page`). It can open a public URL in Cloudflare's Browser Rendering and read the text (`computer_browse`, marked untrusted so the steward's agent knows where the words came from). It can snapshot and restore its workspace. And the person has a console into the same machine through the same `computer_run` tool, so a person and their agent share one computer and one log. The steward gets none of that, because the steward never does the work: they get counts per member, a signal when someone has failed three commands in a row, a button that rotates the invite link and one that deletes the room.
 
 ## What people and agents can do together that was hard before
 
@@ -115,7 +120,11 @@ Reported honestly: the guarded arm scores zero because it cannot do otherwise, w
 
 A client that has never seen this code also drove a room. `scripts/foreign-agent.mjs` attaches from outside the browser, imports nothing from `src/`, and learns the room only through `getTools()`: name, description, and an `inputSchema` it has to parse from a string. It drafted twice, submitted, asked to publish, was parked, checked once, and reported that nothing had shipped. The client is mine, so this is not a third-party product; only its ignorance is guaranteed. It does show that the descriptions carry enough for a stranger, and that the surface is the standard one.
 
-`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **14 of 14** against the deployed origin in a clean Chrome profile with no flags. Four of those cases test the claim rather than a function. One writes a sentinel sentence into a private draft and searches all of shared state for it. One calls publish, checks the board did not move, approves as a human, and only then expects the effect. And two do the same for the computer: a canary sentence goes into a file, `cat` reads it back, shared state is searched and holds nothing, and only `computer_share_file` puts it on the board.
+`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **18 of 18** against the deployed origin in a clean Chrome profile with no flags. Four of those cases test the claim rather than a function. One writes a sentinel sentence into a private draft and searches all of shared state for it. One calls publish, checks the board did not move, approves as a human, and only then expects the effect. And two do the same for the computer: a canary sentence goes into a file, `cat` reads it back, shared state is searched and holds nothing, and only `computer_share_file` puts it on the board.
+
+## A room from an OpenAPI file
+
+`npm run generate -- your-api.json` turns an OpenAPI 3 document into a room. Every operation becomes a WebMCP tool; reads are work tier, writes are share tier, and anything that sounds irreversible (delete, refund, publish, pay, ship) is commit tier and parks for a person, with `x-clawroom-tier` to choose by hand. The generated room works before the API is wired: every call is a dry run that still obeys the tiers and fills the log, which is the point of generating the room first. The order desk in the switcher was made this way from a 40-line spec.
 
 ## What I found out about the ecosystem
 

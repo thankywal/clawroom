@@ -20,6 +20,12 @@ import { deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite,
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
 import { resolveModelContext } from '../engine/webmcp.js'
+
+/** What a person typed into their own computer's console, and what came back.
+ *  It goes through the same WebMCP tool the agent uses, so it lands in the
+ *  same log line: "ran ...", never the output. */
+const tty: { cmd: string; out: string }[] = []
+let ttyBusy = false
 import { connectRoom, type Status, type Transport } from '../sync/client.js'
 
 const q = new URLSearchParams(location.search)
@@ -203,6 +209,17 @@ function render(): void {
             ${drafts ? '<div class="btns"><button class="ghost small" id="wipe">Delete everything the room never had</button></div>' : ''}
           </div>
         </section>
+
+        ${!isSteward && host.available ? `<section class="zone priv" style="margin-top:14px">
+          <div class="zhead"><h2>Your computer</h2><span class="note">a Linux machine on Cloudflare, yours alone</span></div>
+          <div class="zbody">
+            <pre class="tty" id="tty">${tty.length ? tty.map(t => `<b>$ ${esc(t.cmd)}</b>\n${esc(t.out)}`).join('\n') : 'Type a command. It runs on the same computer your agent uses, through the same computer_run tool, so the room sees one log line and nothing else.'}</pre>
+            <div class="composer">
+              <input id="cmd" placeholder="ls -la /workspace" ${ttyBusy ? 'disabled' : ''}>
+              <button class="ghost" id="runcmd" ${ttyBusy ? 'disabled' : ''}>${ttyBusy ? 'Running' : 'Run'}</button>
+            </div>
+          </div>
+        </section>` : ''}
       </div>
 
       <section class="zone">
@@ -232,6 +249,36 @@ function render(): void {
     try { await navigator.clipboard.writeText(invite) } catch { /* clipboard can be blocked */ }
     if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
   })
+
+  const cmdBox = el('cmd') as HTMLInputElement | null
+  const runCmd = async (): Promise<void> => {
+    const command = cmdBox?.value.trim()
+    if (!command || ttyBusy) return
+    ttyBusy = true
+    tty.push({ cmd: command, out: '' })
+    if (tty.length > 12) tty.shift()
+    render()
+    const entry = tty[tty.length - 1]!
+    try {
+      const mc = resolveModelContext()
+      const handle = await host.handle('computer_run')
+      if (!mc || !handle) throw new Error('computer_run is not registered in this room')
+      const raw = await mc.executeTool(handle, JSON.stringify({ command }))
+      let text = String(raw)
+      try {
+        const env = JSON.parse(text) as { content?: { type: string; text?: string }[] }
+        if (Array.isArray(env.content)) text = env.content.map(c => c.text ?? '').join('\n')
+      } catch { /* a plain string is fine too */ }
+      entry.out = text
+    } catch (err) {
+      entry.out = `Could not run that: ${String((err as Error)?.message ?? err)}`
+    }
+    ttyBusy = false
+    render()
+    el('cmd')?.focus()
+  }
+  el('runcmd')?.addEventListener('click', () => { void runCmd() })
+  cmdBox?.addEventListener('keydown', e => { if ((e as KeyboardEvent).key === 'Enter') void runCmd() })
 
   el('wipe')?.addEventListener('click', async () => {
     await destroyComputer(store, scratchFor(roomKey, person.id))

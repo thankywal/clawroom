@@ -9,7 +9,8 @@
     "deploy": "npm run build && wrangler deploy",
     "verify": "node scripts/verify.mjs",
     "ablate": "node scripts/ablate.mjs https://clawroom.thankywal-bkk.workers.dev/ablate.html?auto=1&n=5",
-    "foreign": "node scripts/foreign-agent.mjs"
+    "foreign": "node scripts/foreign-agent.mjs",
+    "generate": "node scripts/generate-room.mjs"
   },
   "devDependencies": {
     "@cloudflare/puppeteer": "^1.4.0",

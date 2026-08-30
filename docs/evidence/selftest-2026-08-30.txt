@@ -1,0 +1,24 @@
+/selftest.html against https://clawroom.thankywal-bkk.workers.dev, 2026-08-30,
+headless Chrome 151 stable, clean profile, no flags. Every case goes through
+document.modelContext.executeTool() with no agent involved.
+
+tally: 18/18 passed on document.modelContext
+
+list_posts                              work, read only          PASS
+draft_post                              work, stays local        PASS
+the draft never reaches shared state    the whole point          PASS  shared state holds the summary line and no draft copy
+revise                                  work, stays local        PASS
+submit_for_review                       share, now visible       PASS
+publish parks instead of publishing     commit                   PASS  handle apv_gqkk | still review | 1 waiting
+check_approval says pending             work, read only          PASS
+approval applies the effect             human in the loop        PASS  post_1 is now done | 0 waiting
+check_approval says approved            work, read only          PASS
+computer_write_file                     work, on your machine    PASS  Wrote /workspace/notes.md (51 bytes)
+computer_run                            work, on your machine    PASS  exit 0, the canary read back by cat
+the file never reaches shared state     the whole point, again   PASS  shared state holds "ran a command" and "wrote notes.md", not the file
+computer_share_file                     share, by choice         PASS  on board: yes
+computer_serve                          work, a background process PASS  listening on port 8000
+computer_fetch_local                    work, on your machine    PASS  HTTP 200 | page in shared state: no
+computer_share_page                     share, by choice         PASS  on board: yes (76 characters)
+computer_snapshot and computer_restore  work, on your machine    PASS  saved 4 KB | after rm: gone | restored | canary is back
+the work log shows work, never words    steward                  PASS
