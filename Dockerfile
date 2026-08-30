@@ -7,4 +7,5 @@ FROM docker.io/cloudflare/sandbox:0.12.9
 # and an agent asked to analyse anything reaches for Python first.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 python3-pip \
+ && ln -s /usr/bin/python3 /usr/bin/python \
  && rm -rf /var/lib/apt/lists/*
