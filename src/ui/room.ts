@@ -20,6 +20,7 @@ import { roomById } from '../rooms/index.js'
 import { deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
+import { PRESETS, providerLabel, saveProvider, savedProvider } from '../agent/provider.js'
 import { resolveModelContext } from '../engine/webmcp.js'
 
 /** What a person typed into their own computer's console, and what came back.
@@ -28,6 +29,7 @@ import { resolveModelContext } from '../engine/webmcp.js'
 /** What the Add a source form is holding: nothing, a URL being read, or a
  *  parsed source waiting for the person to say yes. */
 let sourceDraft: { url: string; busy: boolean; parsed?: any; error?: string } | null = null
+let modelOpen = false
 let sourcePrint = ''
 
 const tty: { cmd: string; out: string }[] = []
@@ -226,6 +228,23 @@ function render(): void {
             <button class="primary" id="send" ${thinking ? 'disabled' : ''}>${thinking ? 'Working' : 'Send'}</button>
             ${thinking ? '<button class="ghost" id="halt">Stop</button>' : ''}
           </div>
+          <p class="empty modelrow">
+            Model: <b>${esc(providerLabel())}</b>
+            <button class="linky" id="modeltoggle">${modelOpen ? 'close' : savedProvider() ? 'change' : 'use your own'}</button>
+          </p>
+          ${modelOpen ? `<div class="modelform">
+            <p class="empty">Any OpenAI-compatible endpoint. The key stays in this browser and is sent with
+              each request to this site, which forwards it to the endpoint you name and keeps nothing.
+              It never reaches the room or another member. Use a scoped or throwaway key.</p>
+            <select id="mpreset">${PRESETS.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}</select>
+            <input id="mbase" placeholder="https://api.openai.com/v1" value="${esc(savedProvider()?.base ?? PRESETS[0]!.base)}">
+            <input id="mmodel" placeholder="gpt-5" value="${esc(savedProvider()?.model ?? PRESETS[0]!.model)}">
+            <input id="mkey" type="password" placeholder="your key" autocomplete="off">
+            <div class="btns">
+              <button class="primary small" id="msave">Use this model</button>
+              ${savedProvider() ? '<button class="ghost small" id="mclear">Back to the built in one</button>' : ''}
+            </div>
+          </div>` : ''}
         </section>
 
         <section class="zone priv" style="margin-top:14px">
@@ -317,6 +336,34 @@ function render(): void {
     if (!invite) { if (b) b.textContent = 'Steward link only'; return }
     try { await navigator.clipboard.writeText(invite) } catch { /* clipboard can be blocked */ }
     if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
+  })
+
+  el('modeltoggle')?.addEventListener('click', () => { modelOpen = !modelOpen; render() })
+  el('mpreset')?.addEventListener('change', e => {
+    const p = PRESETS[Number((e.target as HTMLSelectElement).value)]
+    if (!p) return
+    ;(el('mbase') as HTMLInputElement).value = p.base
+    ;(el('mmodel') as HTMLInputElement).value = p.model
+  })
+  el('msave')?.addEventListener('click', () => {
+    const base = (el('mbase') as HTMLInputElement | null)?.value.trim() ?? ''
+    const model = (el('mmodel') as HTMLInputElement | null)?.value.trim() ?? ''
+    const key = (el('mkey') as HTMLInputElement | null)?.value.trim() ?? ''
+    if (!base || !model || !key) {
+      chat.push({ k: 'note', text: 'That needs an endpoint, a model name and a key.' })
+      render()
+      return
+    }
+    saveProvider({ base, model, key })
+    modelOpen = false
+    chat.push({ k: 'note', text: `Your agent will use ${model} from now on, in this browser only.` })
+    render()
+  })
+  el('mclear')?.addEventListener('click', () => {
+    saveProvider(null)
+    modelOpen = false
+    chat.push({ k: 'note', text: 'Back to the model this site hosts.' })
+    render()
   })
 
   const srcBox = el('srcurl') as HTMLInputElement | null

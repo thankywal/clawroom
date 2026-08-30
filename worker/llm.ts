@@ -103,9 +103,20 @@ async function viaOpenAI(
 
 export async function complete(
   env: Env,
-  req: { messages: AgentMsg[]; tools: AgentToolSpec[] },
+  req: { messages: AgentMsg[]; tools: AgentToolSpec[]; byo?: { base: string; key: string; model: string } },
   debug = false,
 ): Promise<AgentReply> {
+  // A member can point their own agent at their own provider. The key arrives
+  // on the request, is used once, and is not stored, logged or echoed. It is
+  // read before the deployment's own secrets so that a person who brought a
+  // key gets the model they asked for.
+  if (req.byo?.base && req.byo?.key) {
+    try {
+      return await viaOpenAI(req.byo.base, req.byo.key, req.byo.model || 'gpt-5', req)
+    } catch (e) {
+      return { text: '', calls: [], stop: 'error', error: `your model endpoint: ${String((e as Error)?.message ?? e)}` }
+    }
+  }
   const base = (env as any).LLM_BASE_URL as string | undefined
   const key = (env as any).LLM_API_KEY as string | undefined
   const model = ((env as any).LLM_MODEL as string | undefined) ?? 'llama-3.3-70b-versatile'

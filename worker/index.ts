@@ -41,7 +41,7 @@ export default {
       const raw = await req.text()
       if (raw.length > MAX_BODY) return json({ error: 'body too large' }, 413)
 
-      let body: { messages?: AgentMsg[]; tools?: AgentToolSpec[] }
+      let body: { messages?: AgentMsg[]; tools?: AgentToolSpec[]; byo?: { base?: string; key?: string; model?: string } }
       try {
         body = JSON.parse(raw)
       } catch {
@@ -55,7 +55,11 @@ export default {
       if (tools.length > MAX_TOOLS) return json({ error: 'too many tools' }, 400)
 
       const debug = url.searchParams.has('debug')
-      const reply = await complete(env, { messages, tools }, debug)
+      // Forwarded, never kept. See the note in worker/llm.ts.
+      const byo = body.byo?.base && body.byo?.key
+        ? { base: String(body.byo.base), key: String(body.byo.key), model: String(body.byo.model ?? '') }
+        : undefined
+      const reply = await complete(env, { messages, tools, ...(byo ? { byo } : {}) }, debug)
       return json(reply)
     }
 

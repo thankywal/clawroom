@@ -17,6 +17,7 @@
 import type { ModelContext } from '../webmcp.js'
 import type { Person, RoomDefinition, RoomTool } from '../types.js'
 import type { ToolHost } from '../engine/webmcp.js'
+import { savedProvider } from './provider.js'
 import { COMMIT_NOTE } from '../engine/tiers.js'
 import { builtinMemberTools, builtinStewardTools } from '../engine/builtins.js'
 import type { RoomStore } from '../engine/store.js'
@@ -134,7 +135,8 @@ export function createAgent(deps: {
 
       try {
         for (let turn = 0; turn < MAX_TURNS; turn++) {
-          const reply = await askModel({ messages: trim(), tools: specs() }, ac.signal)
+          const byo = savedProvider()
+          const reply = await askModel({ messages: trim(), tools: specs(), ...(byo ? { byo } : {}) }, ac.signal)
 
           if (ac.signal.aborted) return events.onDone?.('stopped')
           if (reply.stop === 'error') return events.onDone?.('error', reply.error)

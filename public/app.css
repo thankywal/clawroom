@@ -188,3 +188,11 @@ pre.tty b { color: #9ad1ff; font-weight: 600; }
 .chip.work { border-color: #2f4a4a; color: #9fd6cf; }
 .chip.share { border-color: #4a4630; color: #ddc98a; }
 .chip.commit { border-color: #5a3540; color: #eaa0ae; }
+
+/* Bring your own model. A quiet row under the composer, because most people
+   will never touch it, and a form that opens in place when they do. */
+.modelrow { margin: 8px 0 0; }
+.modelrow b { color: #cfd8d6; font-weight: 600; }
+button.linky { background: none; border: 0; color: #6fbfb5; cursor: pointer; font: inherit; padding: 0 0 0 6px; text-decoration: underline; }
+.modelform { border-top: 1px solid #1e2726; margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
+.modelform select, .modelform input { width: 100%; }

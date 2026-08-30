@@ -26,8 +26,10 @@ export interface AgentReply {
   error?: string
 }
 
+export interface ByoProvider { base: string; key: string; model: string }
+
 export async function askModel(
-  body: { messages: AgentMsg[]; tools: AgentToolSpec[] },
+  body: { messages: AgentMsg[]; tools: AgentToolSpec[]; byo?: ByoProvider },
   signal?: AbortSignal,
 ): Promise<AgentReply> {
   const once = async (): Promise<AgentReply> => {
