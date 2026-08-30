@@ -61,6 +61,22 @@ export async function rotateInvite(roomId: string, secret: string): Promise<stri
   return invite
 }
 
+/** Steward only. Whether the invite link is the whole gate, or the steward
+ *  also has to let each person in. */
+export async function setDoor(roomId: string, secret: string, mode: 'open' | 'ask'): Promise<boolean> {
+  const res = await fetch(`/api/room/${roomId}/door?k=${encodeURIComponent(secret)}&mode=${mode}`, { method: 'POST' })
+  return res.ok
+}
+
+/** Steward only, and only ever a person. No tool in this engine calls it. */
+export async function answerDoor(roomId: string, secret: string, id: string, admit: boolean): Promise<boolean> {
+  const res = await fetch(
+    `/api/room/${roomId}/${admit ? 'admit' : 'refuse'}?k=${encodeURIComponent(secret)}&id=${encodeURIComponent(id)}`,
+    { method: 'POST' },
+  )
+  return res.ok
+}
+
 /** Steward only. The room, its log, its approvals and its keys all go. */
 export async function deleteRoom(roomId: string, secret: string): Promise<boolean> {
   const res = await fetch(`/api/room/${roomId}/delete?k=${encodeURIComponent(secret)}`, { method: 'POST' })

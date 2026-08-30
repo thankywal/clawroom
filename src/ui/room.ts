@@ -17,7 +17,7 @@ import { computerCounters, destroyComputer } from '../engine/computer.js'
 import { computerUsage } from '../engine/signals.js'
 import { addSourceAsHuman, inspectSource, removeSource, sourceFingerprint, sourceToolName } from '../engine/sources.js'
 import { roomById } from '../rooms/index.js'
-import { deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
+import { answerDoor, deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, setDoor, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
 import { PRESETS, providerLabel, saveProvider, savedProvider } from '../agent/provider.js'
@@ -30,11 +30,15 @@ import { resolveModelContext } from '../engine/webmcp.js'
  *  parsed source waiting for the person to say yes. */
 let sourceDraft: { url: string; busy: boolean; parsed?: any; error?: string } | null = null
 let modelOpen = false
+/** Set when this browser is outside a door that is set to ask. */
+let waitingOutside = false
+let door: 'open' | 'ask' = 'open'
+let knocking: Knocker[] = []
 let sourcePrint = ''
 
 const tty: { cmd: string; out: string }[] = []
 let ttyBusy = false
-import { connectRoom, type Status, type Transport } from '../sync/client.js'
+import { connectRoom, type Knocker, type Status, type Transport } from '../sync/client.js'
 
 const q = new URLSearchParams(location.search)
 const roomId = q.get('r') ?? ''
@@ -169,6 +173,17 @@ function render(): void {
     return
   }
 
+  if (waitingOutside) {
+    mount.innerHTML = `<div class="banner">
+      <b>Waiting to be let in.</b> This room is set so that the person who runs it admits
+      each arrival, so your link is not the whole answer here. They can see that
+      ${esc(person.name)} is at the door. This page will open by itself the moment they say yes.
+      </div>
+      <p class="empty">Your name here comes from this tab. If you would rather knock as somebody
+      else, add <code>&amp;as=Name</code> to the link and reload.</p>`
+    return
+  }
+
   const drafts = scratchFor(roomKey, person.id).keys().length
   const fired = evaluateSignals(s)
 
@@ -204,6 +219,25 @@ function render(): void {
     </div>` : ''}
 
     ${fired.length ? `<div class="banner warn">${fired.map(f => `<b>${esc(f.label)}.</b> ${esc(f.text)}`).join('<br>')}</div>` : ''}
+
+    ${isSteward ? `<section class="zone" style="margin-bottom:14px">
+      <div class="zhead">
+        <h2>Who gets in</h2>
+        <span class="note">${door === 'ask' ? 'you admit each arrival' : 'anyone with the invite link'}</span>
+      </div>
+      <div class="zbody">
+        ${knocking.length ? `<table class="usage"><thead><tr><th>At the door</th><th>Since</th><th></th></tr></thead>
+          <tbody>${knocking.map(k => `<tr>
+            <td>${esc(k.name)}</td>
+            <td>${new Date(k.at).toLocaleTimeString()}</td>
+            <td><button class="ghost small" data-admit="${esc(k.id)}">Let them in</button>
+                <button class="ghost small danger" data-refuse="${esc(k.id)}">Turn away</button></td>
+          </tr>`).join('')}</tbody></table>` : `<p class="empty">${door === 'ask' ? 'Nobody is waiting.' : 'The invite link is the whole gate. Anyone holding it walks in.'}</p>`}
+        <div class="btns">
+          <button class="ghost small" id="doortoggle">${door === 'ask' ? 'Let anyone with the link in' : 'Ask me before letting anyone in'}</button>
+        </div>
+      </div>
+    </section>` : ''}
 
     ${s.approvals.map(approvalRow).join('')}
 
@@ -337,6 +371,23 @@ function render(): void {
     try { await navigator.clipboard.writeText(invite) } catch { /* clipboard can be blocked */ }
     if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
   })
+
+  el('doortoggle')?.addEventListener('click', async () => {
+    const next = door === 'ask' ? 'open' : 'ask'
+    if (await setDoor(roomId, secret, next)) { door = next; render() }
+  })
+  for (const b of Array.from(document.querySelectorAll('[data-admit],[data-refuse]')) as HTMLElement[]) {
+    b.addEventListener('click', async () => {
+      const admit = b.dataset['admit']
+      const refuse = b.dataset['refuse']
+      const id = admit ?? refuse
+      if (!id) return
+      b.textContent = 'Working'
+      await answerDoor(roomId, secret, id, Boolean(admit))
+      knocking = knocking.filter(k => k.id !== id)
+      render()
+    })
+  }
 
   el('modeltoggle')?.addEventListener('click', () => { modelOpen = !modelOpen; render() })
   el('mpreset')?.addEventListener('change', e => {
@@ -588,7 +639,25 @@ async function connect(): Promise<void> {
     secret,
     since: () => store.lastSeq(),
     onEnvelope: env => store.receive(env),
+    who: { id: person.id, name: person.name },
+    onWaiting: () => {
+      // Take the tools down as well as the page. A person waiting outside has
+      // no business holding a registered surface, and their agent should see
+      // an empty room rather than tools that will be refused.
+      waitingOutside = true
+      void host.unmount().then(() => { surface = []; render() })
+      render()
+    },
+    onKnock: (list, mode) => {
+      knocking = list
+      if (mode) door = mode
+      render()
+    },
     onWelcome: async w => {
+      const wasOutside = waitingOutside
+      waitingOutside = false
+      if (w.door) door = w.door
+      if (w.waiting) knocking = w.waiting
       // The page has to mount something before the server has spoken, so it
       // assumes the least: member, and whatever the URL hinted at. Both can
       // turn out wrong, and a wrong def means a support desk holding a
@@ -611,7 +680,7 @@ async function connect(): Promise<void> {
       // rooms were unusable for anyone but the first person in, and it looked
       // like a sync problem rather than what it was.
       for (const env of w.ops) store.receive(env)
-      if (roleChanged || defChanged || !surface.length) {
+      if (roleChanged || defChanged || wasOutside || !surface.length) {
         surface = await host.mount(def, { store, me: person, isSteward })
       }
       roomTitle = w.title ?? def.title

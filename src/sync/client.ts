@@ -16,11 +16,17 @@ export interface Transport {
   readonly status: Status
 }
 
+export interface Knocker { id: string; name: string; at: number }
+
 export interface Welcome {
   role: 'steward' | 'member'
   first: boolean
   title?: string
   defId?: string
+  /** open: the link is the whole gate. ask: the steward lets each person in. */
+  door?: 'open' | 'ask'
+  /** Steward only. Who is at the door right now. */
+  waiting?: Knocker[]
   /** Everything that happened before this client arrived. Handed to the page
    *  rather than applied here, because the page may replace its store on
    *  learning what kind of room this is, and history applied to the store it
@@ -37,6 +43,12 @@ export function connectRoom(a: {
   onEnvelope: (env: Envelope) => void
   onWelcome: (w: Welcome) => void
   onDenied?: () => void
+  /** This browser is at a door that is set to ask, and nobody has opened it. */
+  onWaiting?: () => void
+  /** Steward only. Somebody is knocking, or the list changed. */
+  onKnock?: (waiting: Knocker[], door?: 'open' | 'ask') => void
+  /** Who is knocking. The server needs a name to show the steward. */
+  who?: { id: string; name: string }
   onRefused?: (need: string) => void
   onStatus?: (s: Status) => void
 }): Transport {
@@ -65,7 +77,7 @@ export function connectRoom(a: {
     ws.addEventListener('open', () => {
       backoff = 400
       setStatus('open')
-      ws?.send(JSON.stringify({ t: 'hello', since: a.since(), key: a.secret }))
+      ws?.send(JSON.stringify({ t: 'hello', since: a.since(), key: a.secret, ...(a.who ? { who: a.who } : {}) }))
       flush()
     })
 
@@ -73,7 +85,14 @@ export function connectRoom(a: {
       let msg: any
       try { msg = JSON.parse(String(ev.data)) } catch { return }
       if (msg.t === 'welcome') {
-        a.onWelcome({ role: msg.role, first: Boolean(msg.first), title: msg.title, defId: msg.defId, ops: msg.ops ?? [] })
+        a.onWelcome({
+          role: msg.role, first: Boolean(msg.first), title: msg.title, defId: msg.defId,
+          door: msg.door, waiting: msg.waiting, ops: msg.ops ?? [],
+        })
+      } else if (msg.t === 'waiting') {
+        a.onWaiting?.()
+      } else if (msg.t === 'knock') {
+        a.onKnock?.(msg.waiting ?? [], msg.door)
       } else if (msg.t === 'ops') {
         for (const env of msg.ops ?? []) a.onEnvelope(env)
       } else if (msg.t === 'denied') {

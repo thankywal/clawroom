@@ -24,9 +24,15 @@ export interface RoomConfig {
   stewardHash: string
   memberHash: string
   createdAt: number
+  /** open: the invite link is the whole gate. ask: the steward also has to
+   *  let each person in. Off by default, because a room nobody can enter is
+   *  a worse first impression than one anybody with the link can. */
+  door?: 'open' | 'ask'
 }
 
-interface Hello { t: 'hello'; since: number; key: string }
+interface Knocker { id: string; name: string; at: number }
+
+interface Hello { t: 'hello'; since: number; key: string; who?: { id: string; name: string } }
 interface OpMsg { t: 'op'; env: Envelope }
 interface Ping { t: 'ping' }
 type Inbound = Hello | OpMsg | Ping
@@ -52,6 +58,8 @@ export class RoomDO implements DurableObject {
   private seq = 0
   private seeded = false
   private config: RoomConfig | null = null
+  private admitted = new Set<string>()
+  private waiting = new Map<string, Knocker>()
   private hits = new Map<WebSocket, { at: number; n: number }>()
 
   constructor(private ctx: DurableObjectState, _env: Env) {
@@ -59,6 +67,7 @@ export class RoomDO implements DurableObject {
       this.seq = (await this.ctx.storage.get<number>('seq')) ?? 0
       this.seeded = (await this.ctx.storage.get<boolean>('seeded')) ?? false
       this.config = (await this.ctx.storage.get<RoomConfig>('config')) ?? null
+      this.admitted = new Set(await this.ctx.storage.get<string[]>('admitted') ?? [])
     })
   }
 
@@ -97,6 +106,32 @@ export class RoomDO implements DurableObject {
     for (const ws of this.ctx.getWebSockets()) {
       try { ws.send(text) } catch { /* a closing socket is not worth handling */ }
     }
+  }
+
+  /** Only the steward's sockets, for the knock list. Members never learn who
+   *  is waiting outside, the same way they never see each other's drafts. */
+  private tellSteward(payload: unknown): void {
+    const text = JSON.stringify(payload)
+    for (const ws of this.ctx.getWebSockets()) {
+      const att = ws.deserializeAttachment() as { role?: Role } | null
+      if (att?.role !== 'steward') continue
+      try { ws.send(text) } catch { /* a closing socket is not worth handling */ }
+    }
+  }
+
+  private knockList(): Knocker[] {
+    return [...this.waiting.values()].sort((a, b) => a.at - b.at)
+  }
+
+  private async welcome(ws: WebSocket, role: Role, since: number): Promise<void> {
+    const first = since === 0 ? await this.claimFirst() : false
+    ws.send(JSON.stringify({
+      t: 'welcome', role, first,
+      title: this.config?.title, defId: this.config?.defId,
+      door: this.config?.door ?? 'open',
+      ...(role === 'steward' ? { waiting: this.knockList() } : {}),
+      ops: await this.since(since),
+    }))
   }
 
   private limited(ws: WebSocket): boolean {
@@ -153,6 +188,61 @@ export class RoomDO implements DurableObject {
       return Response.json({ ok: true, invite: member })
     }
 
+    // The door. Open means the invite link is the whole gate, which is how a
+    // room starts. Ask means the steward also has to let each person in.
+    if (url.pathname.endsWith('/door') && req.method === 'POST') {
+      if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
+      if ((await this.roleFor(url.searchParams.get('k') ?? '')) !== 'steward') {
+        return Response.json({ error: 'steward only' }, { status: 403 })
+      }
+      const mode = url.searchParams.get('mode') === 'ask' ? 'ask' : 'open'
+      this.config = { ...this.config, door: mode }
+      await this.ctx.storage.put('config', this.config)
+      // Opening the door lets in whoever was already knocking, rather than
+      // leaving them staring at a page that will never change.
+      if (mode === 'open') {
+        for (const ws of this.ctx.getWebSockets()) {
+          const att = ws.deserializeAttachment() as { role?: Role; id?: string } | null
+          if (att?.role === 'member' && att.id && this.waiting.has(att.id)) {
+            this.waiting.delete(att.id)
+            await this.welcome(ws, 'member', 0)
+          }
+        }
+      }
+      this.tellSteward({ t: 'knock', waiting: this.knockList(), door: mode })
+      return Response.json({ ok: true, door: mode })
+    }
+
+    // Letting one person in, or turning them away. Only a steward, and only
+    // ever a person: there is no tool in the engine that can call this.
+    if ((url.pathname.endsWith('/admit') || url.pathname.endsWith('/refuse')) && req.method === 'POST') {
+      if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
+      if ((await this.roleFor(url.searchParams.get('k') ?? '')) !== 'steward') {
+        return Response.json({ error: 'steward only' }, { status: 403 })
+      }
+      const id = url.searchParams.get('id') ?? ''
+      const admit = url.pathname.endsWith('/admit')
+      if (!this.waiting.has(id) && !this.admitted.has(id)) {
+        return Response.json({ error: 'nobody by that name is waiting' }, { status: 404 })
+      }
+      this.waiting.delete(id)
+      if (admit) {
+        this.admitted.add(id)
+        await this.ctx.storage.put('admitted', [...this.admitted])
+      } else {
+        this.admitted.delete(id)
+        await this.ctx.storage.put('admitted', [...this.admitted])
+      }
+      for (const ws of this.ctx.getWebSockets()) {
+        const att = ws.deserializeAttachment() as { role?: Role; id?: string } | null
+        if (att?.role !== 'member' || att.id !== id) continue
+        if (admit) await this.welcome(ws, 'member', 0)
+        else { try { ws.send(JSON.stringify({ t: 'denied' })); ws.close(1000, 'not admitted') } catch { /* closing */ } }
+      }
+      this.tellSteward({ t: 'knock', waiting: this.knockList() })
+      return Response.json({ ok: true })
+    }
+
     // A steward can delete the room. Everything the Durable Object holds goes,
     // every socket is closed, and every key to it stops meaning anything.
     // Members' computers are theirs: the room never held their addresses, so
@@ -166,6 +256,7 @@ export class RoomDO implements DurableObject {
       }
       await this.ctx.storage.deleteAll()
       this.config = null; this.seq = 0; this.seeded = false; this.hits.clear()
+      this.admitted.clear(); this.waiting.clear()
       return Response.json({ ok: true })
     }
 
@@ -180,6 +271,8 @@ export class RoomDO implements DurableObject {
       const invite = role === 'steward' ? await this.ctx.storage.get<string>('memberKey') : undefined
       return Response.json({
         role, defId: this.config.defId, title: this.config.title,
+        door: this.config.door ?? 'open',
+        ...(role === 'steward' ? { waiting: this.knockList() } : {}),
         ...(invite ? { invite } : {}),
       })
     }
@@ -205,20 +298,33 @@ export class RoomDO implements DurableObject {
       if (!role) { ws.send(JSON.stringify({ t: 'denied' })); return }
       // The role rides with the socket, so a later op cannot claim a different
       // one. Hibernation restores the attachment, so this survives idle time.
-      ws.serializeAttachment({ role })
-      const first = msg.since === 0 ? await this.claimFirst() : false
-      ws.send(JSON.stringify({
-        t: 'welcome', role, first,
-        title: this.config?.title, defId: this.config?.defId,
-        ops: await this.since(msg.since ?? 0),
-      }))
+      const who = msg.who
+      // The role rides with the socket so a later op cannot claim a different
+      // one, and the person id rides with it so an admit can find them again.
+      ws.serializeAttachment({ role, id: who?.id })
+
+      const asking = (this.config?.door ?? 'open') === 'ask'
+      if (role === 'member' && asking && who?.id && !this.admitted.has(who.id)) {
+        this.waiting.set(who.id, { id: who.id, name: String(who.name ?? 'Someone').slice(0, 40), at: Date.now() })
+        ws.send(JSON.stringify({ t: 'waiting' }))
+        this.tellSteward({ t: 'knock', waiting: this.knockList() })
+        return
+      }
+      await this.welcome(ws, role, msg.since ?? 0)
       return
     }
 
     if (msg.t === 'op') {
-      const att = ws.deserializeAttachment() as { role?: Role } | null
+      const att = ws.deserializeAttachment() as { role?: Role; id?: string } | null
       const role = att?.role
       if (!role) { ws.send(JSON.stringify({ t: 'denied' })); return }
+      // Somebody still at the door does not get to write to the room. The page
+      // stops showing them the tools, and this is the half that means it: the
+      // check that decides is the same one that decides whether they can see.
+      if (role === 'member' && (this.config?.door ?? 'open') === 'ask' && att.id && !this.admitted.has(att.id)) {
+        ws.send(JSON.stringify({ t: 'waiting' }))
+        return
+      }
       if (!this.allowed(role, msg.env)) {
         ws.send(JSON.stringify({ t: 'refused', op: msg.env.op.k, need: 'steward' }))
         return
