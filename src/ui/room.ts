@@ -13,9 +13,10 @@ import { createToolHost, namespaceName } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
 import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
-import { computerCounters } from '../engine/computer.js'
+import { computerCounters, destroyComputer } from '../engine/computer.js'
+import { computerUsage } from '../engine/signals.js'
 import { roomById } from '../rooms/index.js'
-import { rememberRoom, roomLink, roomMeta, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
+import { deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
 import { REHEARSAL_NOTE, rehearsedPlan } from '../agent/rehearsed.js'
 import { resolveModelContext } from '../engine/webmcp.js'
@@ -142,6 +143,8 @@ function render(): void {
         <option value="__new">New room...</option>
       </select>
       <button class="ghost small" id="share">Copy invite link</button>
+      ${isSteward ? `<button class="ghost small" id="rotate" title="Mint a new member link. The old one stops working now.">Rotate invite</button>
+      <button class="ghost small danger" id="delete" title="Delete this room for everyone.">Delete room</button>` : ''}
       <span class="status ${host.available ? 'live' : ''}">${
         host.available
           ? `${surface.length} tools on ${namespaceName()}.modelContext`
@@ -164,6 +167,14 @@ function render(): void {
     ${fired.length ? `<div class="banner warn">${fired.map(f => `<b>${esc(f.label)}.</b> ${esc(f.text)}`).join('<br>')}</div>` : ''}
 
     ${s.approvals.map(approvalRow).join('')}
+
+    ${isSteward && computerUsage(s).length ? `<section class="zone" style="margin-bottom:14px">
+      <div class="zhead"><h2>Computers in this room</h2><span class="note">counts, never contents</span></div>
+      <div class="zbody">
+        <table class="usage"><thead><tr><th>member</th><th>commands</th><th>failed</th><th>files written</th><th>shared</th><th>last</th></tr></thead>
+        <tbody>${computerUsage(s).map(u => `<tr><td>${esc(u.name)}</td><td>${u.runs}</td><td>${u.failed}</td><td>${u.writes}</td><td>${u.shares}</td><td>${new Date(u.last).toLocaleTimeString()}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </section>` : ''}
 
     <div class="grid">
       <div>
@@ -222,7 +233,34 @@ function render(): void {
     if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
   })
 
-  el('wipe')?.addEventListener('click', () => { clearPrivate(roomKey, person.id); render() })
+  el('wipe')?.addEventListener('click', async () => {
+    await destroyComputer(store, scratchFor(roomKey, person.id))
+    clearPrivate(roomKey, person.id)
+    render()
+  })
+
+  // Two clicks, four seconds apart at most, instead of a confirm() dialog.
+  const armed = (id: string, label: string, go: () => Promise<void>) => {
+    const b = el(id) as HTMLButtonElement | null
+    if (!b) return
+    let until = 0
+    b.addEventListener('click', async () => {
+      if (Date.now() > until) { until = Date.now() + 4000; b.textContent = `Really ${label}?`; setTimeout(() => { if (Date.now() > until) b.textContent = label }, 4200); return }
+      b.disabled = true; b.textContent = 'Working'
+      await go()
+      b.disabled = false; b.textContent = label
+    })
+  }
+  armed('rotate', 'Rotate invite', async () => {
+    const next = await rotateInvite(roomId, secret)
+    invite = next ? roomLink(roomId, next) : null
+    chat.push({ k: 'note', text: next ? 'Invite link rotated. The old member link no longer opens this room. Copy the new one to hand out.' : 'The room refused that.' })
+    render()
+  })
+  armed('delete', 'Delete room', async () => {
+    if (await deleteRoom(roomId, secret)) { forgetRoom(roomId); location.href = '/' }
+    else { chat.push({ k: 'note', text: 'The room refused that.' }); render() }
+  })
 
   el('switch')?.addEventListener('change', e => {
     const v = (e.target as HTMLSelectElement).value

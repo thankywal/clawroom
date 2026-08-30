@@ -18,12 +18,14 @@
 // filesystem intact. That is what makes a computer per agent affordable.
 
 import { getSandbox, type Sandbox } from '@cloudflare/sandbox'
+import puppeteer from '@cloudflare/puppeteer'
 
 // wrangler types does not know how to type a Durable Object class that lives
 // in a dependency, so the binding is declared here and merged into Env.
 declare global {
   interface Env {
     Sandbox: DurableObjectNamespace<Sandbox>
+    BROWSER: Fetcher
   }
 }
 
@@ -47,10 +49,34 @@ function withBudget<T>(p: Promise<T>): Promise<T> {
 interface DeskRequest {
   k?: string
   desk?: string
-  op?: 'exec' | 'write' | 'read' | 'ls' | 'destroy'
+  op?: 'exec' | 'write' | 'read' | 'ls' | 'destroy' | 'start' | 'procs' | 'kill' | 'fetch_local' | 'browse' | 'snapshot' | 'snapshots' | 'restore'
   cmd?: string
   path?: string
   content?: string
+  port?: number
+  id?: string
+  url?: string
+  name?: string
+}
+
+const BROWSE_MS = 25_000
+const MAX_BROWSE = 12_000
+const SNAPDIR = '/snapshots'
+
+/** A page rendered by a real browser, reduced to the text a person would read.
+ *  Work tier like everything else here: the URL and the text go back to the
+ *  member's browser, and the room learns that a page was read. */
+async function browse(env: Env, url: string): Promise<{ title: string; text: string; status: number }> {
+  const browser = await puppeteer.launch(env.BROWSER)
+  try {
+    const page = await browser.newPage()
+    const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: BROWSE_MS })
+    const title = await page.title()
+    const text = String(await page.evaluate("(document.body ? document.body.innerText : '').replace(/\\n{3,}/g, '\\n\\n')"))
+    return { title, text: clip(text, MAX_BROWSE), status: res?.status() ?? 0 }
+  } finally {
+    await browser.close()
+  }
 }
 
 const json = (body: unknown, status = 200) =>
@@ -128,6 +154,68 @@ export async function handleDesk(req: Request, env: Env, roomId: string): Promis
       case 'destroy': {
         await withBudget(sandbox.destroy())
         return json({ ok: true })
+      }
+
+      // --- background processes, for anything that serves ---
+      case 'start': {
+        const cmd = String(body.cmd ?? '').trim()
+        if (!cmd) return json({ error: 'no command' }, 400)
+        await withBudget(sandbox.mkdir(WORKSPACE, { recursive: true }))
+        const proc = await withBudget(sandbox.startProcess(cmd, { cwd: WORKSPACE }))
+        if (body.port) {
+          try { await withBudget(proc.waitForPort(Number(body.port), { mode: 'tcp' })) }
+          catch { return json({ ok: true, id: proc.id, pid: proc.pid, port: body.port, listening: false }) }
+        }
+        return json({ ok: true, id: proc.id, pid: proc.pid, port: body.port ?? null, listening: Boolean(body.port) })
+      }
+      case 'procs': {
+        const list = await withBudget(sandbox.listProcesses())
+        return json({ ok: true, procs: list.map(p => ({ id: p.id, pid: p.pid, command: p.command, status: p.status })) })
+      }
+      case 'kill': {
+        const id = String(body.id ?? '')
+        if (!id) return json({ error: 'no process id' }, 400)
+        await withBudget(sandbox.killProcess(id))
+        return json({ ok: true })
+      }
+      // What a local server is showing, fetched from inside the machine. The
+      // member's browser gets it; a share-tier tool decides whether the room does.
+      case 'fetch_local': {
+        const port = Number(body.port)
+        if (!port || port < 1 || port > 65535) return json({ error: 'bad port' }, 400)
+        const path = String(body.path ?? '/').replace(/[^A-Za-z0-9_./?=&%-]/g, '')
+        const r = await withBudget(sandbox.exec(`curl -s -m 10 -w '\\n%{http_code}' http://127.0.0.1:${port}${path}`, { timeout: 15_000 }))
+        const out = r.stdout ?? ''
+        const cut = out.lastIndexOf('\n')
+        return json({ ok: true, status: Number(out.slice(cut + 1)) || 0, body: clip(out.slice(0, cut), MAX_READ) })
+      }
+
+      // --- a browser, for reading the web ---
+      case 'browse': {
+        const url = String(body.url ?? '').trim()
+        if (!/^https?:\/\//.test(url)) return json({ error: 'http(s) URLs only' }, 400)
+        const page = await browse(env, url)
+        return json({ ok: true, url, ...page })
+      }
+
+      // --- snapshots of the workspace, inside the machine ---
+      case 'snapshot': {
+        const name = String(body.name ?? new Date().toISOString().replace(/[:.]/g, '-')).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) || 'snap'
+        await withBudget(sandbox.mkdir(SNAPDIR, { recursive: true }))
+        await withBudget(sandbox.mkdir(WORKSPACE, { recursive: true }))
+        const r = await withBudget(sandbox.exec(`tar -czf ${SNAPDIR}/${name}.tgz -C ${WORKSPACE} . && du -k ${SNAPDIR}/${name}.tgz | cut -f1`, { timeout: 15_000 }))
+        return json({ ok: r.exitCode === 0, name, kb: Number(r.stdout.trim()) || 0, error: r.exitCode === 0 ? undefined : r.stderr })
+      }
+      case 'snapshots': {
+        await withBudget(sandbox.mkdir(SNAPDIR, { recursive: true }))
+        const r = await withBudget(sandbox.exec(`ls -1 ${SNAPDIR} 2>/dev/null | sed 's/\\.tgz$//'`, { timeout: 10_000 }))
+        return json({ ok: true, snapshots: r.stdout.split('\n').map(s => s.trim()).filter(Boolean) })
+      }
+      case 'restore': {
+        const name = String(body.name ?? '').replace(/[^A-Za-z0-9_-]/g, '')
+        if (!name) return json({ error: 'which snapshot?' }, 400)
+        const r = await withBudget(sandbox.exec(`test -f ${SNAPDIR}/${name}.tgz && rm -rf ${WORKSPACE}/* ${WORKSPACE}/.[!.]* 2>/dev/null; tar -xzf ${SNAPDIR}/${name}.tgz -C ${WORKSPACE}`, { timeout: 15_000 }))
+        return json({ ok: r.exitCode === 0, name, error: r.exitCode === 0 ? undefined : (r.stderr || 'no such snapshot') })
       }
       default:
         return json({ error: 'unknown op' }, 400)

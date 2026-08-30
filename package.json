@@ -12,6 +12,7 @@
     "foreign": "node scripts/foreign-agent.mjs"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^1.4.0",
     "@types/node": "^26.4.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",

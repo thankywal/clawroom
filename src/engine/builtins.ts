@@ -10,7 +10,7 @@
 
 import type { RoomTool } from '../types.js'
 import type { RoomStore } from './store.js'
-import { evaluateSignals } from './signals.js'
+import { evaluateSignals, computerUsage } from './signals.js'
 import { computerTools } from './computer.js'
 
 const noArgs = { type: 'object', properties: {}, additionalProperties: false }
@@ -63,6 +63,25 @@ export function builtinMemberTools(store: RoomStore): RoomTool[] {
 
 export function builtinStewardTools(): RoomTool[] {
   return [
+    {
+      name: 'computer_usage',
+      description:
+        "How each member's computer has been used, as counts: commands run, how many failed, files " +
+        'written, files shared to the board. Never the commands, the output or the files.',
+      tier: 'work',
+      readOnly: true,
+      inputSchema: noArgs,
+      run: (ctx) => {
+        const rows = computerUsage(ctx.room)
+        return {
+          text: rows.length
+            ? rows.map(r => `${r.name}: ${r.runs} commands (${r.failed} failed), ${r.writes} files written, ${r.shares} shared`).join('\n')
+            : 'No computer has been used in this room yet.',
+          data: { usage: rows },
+          summary: `read computer usage for ${rows.length} member${rows.length === 1 ? '' : 's'}`,
+        }
+      },
+    },
     {
       name: 'read_work_log',
       description:

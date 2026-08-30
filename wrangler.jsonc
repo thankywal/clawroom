@@ -49,5 +49,8 @@
       "instance_type": "lite",
       "max_instances": 20
     }
-  ]
+  ],
+  "browser": {
+    "binding": "BROWSER"
+  }
 }

@@ -135,6 +135,40 @@ export class RoomDO implements DurableObject {
       return Response.json({ ok: true })
     }
 
+    // A steward can retire the invite link. A new member secret is minted,
+    // only its hash is kept, and every member socket is closed so the old
+    // link stops working now rather than at the next reconnect.
+    if (url.pathname.endsWith('/rotate') && req.method === 'POST') {
+      if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
+      const secret = url.searchParams.get('k') ?? ''
+      if ((await this.roleFor(secret)) !== 'steward') return Response.json({ error: 'steward only' }, { status: 403 })
+      const member = 'm_' + [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(36).padStart(2, '0')).join('').slice(0, 24)
+      this.config = { ...this.config, memberHash: await hash(member) }
+      await this.ctx.storage.put('config', this.config)
+      await this.ctx.storage.put('memberKey', member)
+      for (const ws of this.ctx.getWebSockets()) {
+        const att = ws.deserializeAttachment() as { role?: Role } | null
+        if (att?.role === 'member') { try { ws.send(JSON.stringify({ t: 'denied' })); ws.close(1000, 'invite rotated') } catch { /* closing */ } }
+      }
+      return Response.json({ ok: true, invite: member })
+    }
+
+    // A steward can delete the room. Everything the Durable Object holds goes,
+    // every socket is closed, and every key to it stops meaning anything.
+    // Members' computers are theirs: the room never held their addresses, so
+    // each member's own browser is what can destroy their sandbox.
+    if (url.pathname.endsWith('/delete') && req.method === 'POST') {
+      if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
+      const secret = url.searchParams.get('k') ?? ''
+      if ((await this.roleFor(secret)) !== 'steward') return Response.json({ error: 'steward only' }, { status: 403 })
+      for (const ws of this.ctx.getWebSockets()) {
+        try { ws.send(JSON.stringify({ t: 'denied' })); ws.close(1000, 'room deleted') } catch { /* closing */ }
+      }
+      await this.ctx.storage.deleteAll()
+      this.config = null; this.seq = 0; this.seeded = false; this.hits.clear()
+      return Response.json({ ok: true })
+    }
+
     if (url.pathname.endsWith('/meta')) {
       if (!this.config) return Response.json({ error: 'no such room' }, { status: 404 })
       const secret = url.searchParams.get('k') ?? ''

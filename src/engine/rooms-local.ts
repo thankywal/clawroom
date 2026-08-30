@@ -53,6 +53,20 @@ export async function createRoom(a: { defId: string; title: string }): Promise<S
 
 /** Asks the room what this link is worth. Also returns the invite link, but
  *  only to a steward, so a member link cannot mint more access than it has. */
+/** Steward only. Mints a new member link; the old one stops working at once. */
+export async function rotateInvite(roomId: string, secret: string): Promise<string | null> {
+  const res = await fetch(`/api/room/${roomId}/rotate?k=${encodeURIComponent(secret)}`, { method: 'POST' })
+  if (!res.ok) return null
+  const { invite } = await res.json() as { invite: string }
+  return invite
+}
+
+/** Steward only. The room, its log, its approvals and its keys all go. */
+export async function deleteRoom(roomId: string, secret: string): Promise<boolean> {
+  const res = await fetch(`/api/room/${roomId}/delete?k=${encodeURIComponent(secret)}`, { method: 'POST' })
+  return res.ok
+}
+
 export async function roomMeta(roomId: string, secret: string): Promise<{
   role: 'steward' | 'member'; defId: string; title: string; invite?: string
 } | null> {
