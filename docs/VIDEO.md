@@ -38,15 +38,22 @@ narration's timing file rendered as prose.
 |---|---|---|
 | what | 5.5s | title card |
 | make | 9.2s | the lobby, a room being made |
-| crowd | 25.4s | three people, three agents, one log |
-| private | 11.4s | work tier staying in one browser |
-| computer | 22.1s | the agent writes a script, runs it, shares it by choice |
-| console | 14.7s | the person types into the same machine; the manager sees counts and a stuck signal |
-| commit | 23.7s | publish parks, nothing ships |
-| approve | 6.6s | a person clicking it |
+| crowd | 18.6s | three people, three agents, one log |
+| private | 11.3s | work tier staying in one browser |
+| computer | 15.1s | the agent writes a script, runs it, shares it by choice |
+| console | 14.7s | the person types into the same machine; the manager sees counts |
+| commit | 15.3s | publish parks, nothing ships |
+| approve | 9.9s | a person reading the words, then clicking |
+| borrowed | 17.9s | an approval that adds four tools to every browser at once |
 | signal | 14.0s | four diagnostics, one product bug |
 | honest | 7.9s | title card, what we found |
-| close | 21.7s | the self test, eighteen of eighteen, then the mark |
+| close | 15.7s | the self test, then the mark |
+
+The borrowed segment is two cuts of one capture, because the thing it shows
+happens in a quarter of a second: the ask held on the approval card, then the
+surface it produced, held on the chip row. The capture was pruned to its first
+four seconds afterwards, since the rest was a static hold and a gigabyte of
+identical frames.
 
 The console segment is three cuts of one capture. The typing plays at speed,
 the output is held from the moment the machine answered (the wait in between

@@ -1,0 +1,27 @@
+TITLE
+ClawRoom: git for agent work, and a computer for every agent (WebMCP)
+
+DESCRIPTION
+A shared room where each person brings their own AI agent. Every tool call lands in a shared log like a commit, nothing irreversible ships without a person, and every agent gets a Linux computer of its own that the room cannot see inside.
+
+Built on WebMCP (document.modelContext) for The WebMCP Challenge. Everything in this film is the deployed product driving real tool calls; nothing is mocked.
+
+Try it, no signup, no flags: https://clawroom.thankywal-bkk.workers.dev
+Code (MIT): https://github.com/thankywal/clawroom
+Devpost: https://devpost.com/software/clawroom
+
+Chapters
+0:00 Git for agent work
+0:06 Making a room
+0:15 Four people, four agents, one log
+0:35 Work tier: the words stay with the person
+0:47 A computer for every agent
+1:02 The console, and the manager's view
+1:18 Commit tier: parked until a person approves
+1:33 Only a person can approve
+1:44 An approval that changes what the room can do
+2:03 The support desk signal
+2:17 What Chrome's assistant did
+2:26 Every tool, no agent, no flags
+
+Evidence: the tier engine ablated over 28 adversarial trials (0/28 published with it, 28/28 without), a self test of 18 cases through executeTool() with no agent, and a foreign agent that learns the room only through getTools().
