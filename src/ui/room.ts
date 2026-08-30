@@ -30,6 +30,7 @@ import { resolveModelContext } from '../engine/webmcp.js'
  *  parsed source waiting for the person to say yes. */
 let sourceDraft: { url: string; busy: boolean; parsed?: any; error?: string } | null = null
 let modelOpen = false
+let bridgeOpen = false
 /** Set when this browser is outside a door that is set to ask. */
 let waitingOutside = false
 let seeded = false
@@ -132,6 +133,27 @@ function logRow(e: Event): string {
  *  approval. "The room sees the work, not the people" is about not reading
  *  somebody's conversation. It was never about hiding the thing being shipped,
  *  and an approver who cannot read it is a rubber stamp. */
+/** The commands, with this room's link already in them. A judge should not
+ *  have to assemble a URL by hand to try the thing the writeup is about. */
+function bridgeCommands(): string {
+  // Worked out at render time rather than cached. The page mounts as a member
+  // and only learns it is the steward when the socket says so, so a steward who
+  // opened this panel quickly used to get their own approving link baked in,
+  // which is the one link an agent must not have.
+  const url = isSteward
+    ? (invite ? `${invite}&as=Codex` : 'reading the invite link...')
+    : `${location.origin}${location.pathname}${location.search}`
+  return [
+    'git clone https://github.com/thankywal/clawroom && cd clawroom && npm i',
+    '',
+    `claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "${url}"`,
+    `codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "${url}"`,
+    '',
+    'Then ask it: read the board, draft two options, submit the better one,',
+    'and ask to publish it.',
+  ].join('\n')
+}
+
 function approvalBody(a: Approval): string {
   const item = a.item ? store.state.items.find(i => i.id === a.item) : undefined
   const body = (item?.body ?? {}) as Record<string, unknown>
@@ -287,6 +309,24 @@ function render(): void {
             Model: <b>${esc(providerLabel())}</b>
             <button class="linky" id="modeltoggle">${modelOpen ? 'close' : savedProvider() ? 'change' : 'use your own'}</button>
           </p>
+          <p class="empty modelrow">
+            Your own agent: <b>Claude Code, Codex, anything that speaks MCP</b>
+            <button class="linky" id="bridgetoggle">${bridgeOpen ? 'close' : 'connect one'}</button>
+          </p>
+          ${bridgeOpen ? `<div class="modelform">
+            <p class="empty">Your agent joins this room through the same tools on this page: it reads them
+              with <code>getTools()</code> and calls them with <code>executeTool()</code>, so a commit still
+              waits for a person and the log still fills here.${isSteward
+                ? ` The link below is the <b>${esc(def.memberRole)}</b> link, not yours. Yours is for approving.`
+                : ''}</p>
+            <pre class="tty" id="bridgecmd">${esc(bridgeCommands())}</pre>
+            <div class="btns">
+              <button class="ghost small" id="bridgecopy">Copy</button>
+              <a class="ghost small" href="https://github.com/thankywal/clawroom#bring-your-own-agent-over-mcp" target="_blank" rel="noreferrer">What this is</a>
+            </div>
+            <p class="empty">Codex asks to allow each tool the first time. Non-interactively,
+              <code>codex exec</code> refuses MCP calls until you add <code>--approve-for-me</code>.</p>
+          </div>` : ''}
           ${modelOpen ? `<div class="modelform">
             <p class="empty">Any OpenAI-compatible endpoint. The key stays in this browser and is sent with
               each request to this site, which forwards it to the endpoint you name and keeps nothing.
@@ -432,6 +472,22 @@ function render(): void {
       render()
     })
   }
+
+  el('bridgetoggle')?.addEventListener('click', async () => {
+    bridgeOpen = !bridgeOpen
+    render()
+    // A steward's own link approves things, so it is the wrong one to hand an
+    // agent. Fetch the invite, which is what a member would be on.
+    if (bridgeOpen && isSteward && !invite) {
+      await inviteLink()
+      render()
+    }
+  })
+  el('bridgecopy')?.addEventListener('click', async () => {
+    const b = el('bridgecopy')
+    try { await navigator.clipboard.writeText(bridgeCommands()) } catch { /* clipboard can be blocked */ }
+    if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy' }, 1600) }
+  })
 
   el('modeltoggle')?.addEventListener('click', () => { modelOpen = !modelOpen; render() })
   el('mpreset')?.addEventListener('change', e => {
@@ -709,6 +765,10 @@ async function connect(): Promise<void> {
       const roleChanged = (w.role === 'steward') !== isSteward
       const defChanged = Boolean(w.defId) && w.defId !== def.id
       isSteward = w.role === 'steward'
+      // The steward always needs the invite eventually: to hand out, and to
+      // hand an agent. Fetch it on arrival rather than when a panel is opened,
+      // because the page mounts before it knows which role it is.
+      if (isSteward && !invite) void inviteLink().then(() => render())
       if (defChanged) {
         def = roomById(w.defId)
         store = createStore({ def, roomKey, me: person, role: w.role })

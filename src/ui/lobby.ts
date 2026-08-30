@@ -80,6 +80,9 @@ function render(): void {
           then watch your log fill and an approval arrive. Ella's agent has a computer of its
           own in the room, a real Linux machine, so ask it to write and run a script as well.
           You will see that it ran. You will not see what it ran.</p>
+        <p class="demoline">Or bring your own: inside any room, under <b>Your agent</b>, press
+          <b>connect one</b> for the command that attaches Claude Code or Codex to that room over
+          MCP. They read the same tools this page registers and a commit still waits for you.</p>
         <div class="btns">
           <button class="primary" id="demo">Open the demo room</button>
           <span id="derr" class="empty"></span>
