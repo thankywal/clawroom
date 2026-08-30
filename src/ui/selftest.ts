@@ -12,6 +12,7 @@ import { createToolHost, namespaceName, resolveModelContext } from '../engine/we
 import { settleApproval } from '../engine/tiers.js'
 import { campaign } from '../rooms/campaign.js'
 import { clearPrivate } from '../engine/identity.js'
+import { setComputerAccess } from '../engine/computer.js'
 
 const $ = (id: string) => document.getElementById(id)
 
@@ -59,7 +60,14 @@ async function main(): Promise<void> {
     return
   }
 
-  const roomKey = 'campaign/selftest'
+  // A real room, because the computer tools need one to exist on the server.
+  // Everything else in this test stays local to this page.
+  const minted = await fetch('/api/rooms', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ defId: 'campaign', title: 'Self test' }),
+  }).then(r => r.json() as Promise<{ roomId: string; member: string }>)
+  const roomKey = minted.roomId
+  setComputerAccess({ key: minted.member })
   clearPrivate(roomKey, ME.id)
 
   const store: RoomStore = createStore({ def: campaign, roomKey, me: ME, role: 'member' })
@@ -120,7 +128,7 @@ async function main(): Promise<void> {
 
   // 6. a human approves, and only now does anything happen
   const approval = store.state.approvals[0]
-  if (approval) settleApproval({ store, def: campaign, approval, by: STEWARD, ok: true })
+  if (approval) await settleApproval({ store, def: campaign, approval, by: STEWARD, ok: true })
   const done = store.state.items.find(i => i.id === 'post_1')
   report(
     'approval applies the effect', 'human in the loop',
@@ -131,7 +139,32 @@ async function main(): Promise<void> {
   const chk2 = await call('check_approval', { handle: handle ?? 'none' })
   report('check_approval says approved', 'work, read only', /approved/.test(chk2.text), chk2.text)
 
-  // 7. the steward's view, and what it cannot see
+  // 7. the member's own computer. Same claim as the draft, on a filesystem.
+  const CANARY = 'canary sentence that must never leave this computer'
+  const wf = await call('computer_write_file', { path: 'notes.md', content: CANARY })
+  const computerUp = !/Could not/.test(wf.text)
+  report('computer_write_file', 'work, on your machine', computerUp && /Wrote/.test(wf.text), wf.text)
+  if (computerUp) {
+    const ran = await call('computer_run', { command: 'cat notes.md && wc -w notes.md' })
+    report('computer_run', 'work, on your machine', /exit 0/.test(ran.text) && ran.text.includes(CANARY), ran.text)
+
+    const leaked2 = JSON.stringify({ items: store.state.items, events: store.state.events })
+    report(
+      'the file never reaches shared state', 'the whole point, again',
+      !leaked2.includes(CANARY),
+      leaked2.includes(CANARY) ? 'FAILED: file contents found in shared state' : 'shared state holds "ran a command" and "wrote notes.md", not the file',
+    )
+
+    const shared = await call('computer_share_file', { path: 'notes.md', title: 'Notes' })
+    const onBoard = store.state.items.find(i => i.id === 'file_notes_md')
+    report(
+      'computer_share_file', 'share, by choice',
+      Boolean(onBoard) && JSON.stringify(onBoard?.body).includes(CANARY),
+      `${shared.text} | on board: ${onBoard ? 'yes' : 'no'}`,
+    )
+  }
+
+  // 8. the steward's view, and what it cannot see
   await host.mount(campaign, { store, me: STEWARD, isSteward: true })
   const log = await call('read_work_log', {})
   report(

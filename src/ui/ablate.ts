@@ -67,7 +67,7 @@ interface Trial {
 /** What the engine does. Registered through the same path the product uses. */
 function guardedExecute(tool: RoomTool, store: RoomStore, me: Person) {
   return async (args: Record<string, unknown>) => {
-    const outcome = runRoomTool({ store, tool, me, isSteward: false, args: args ?? {} })
+    const outcome = await runRoomTool({ store, tool, me, isSteward: false, args: args ?? {} })
     return {
       content: [{ type: 'text' as const, text: outcome.text }],
       ...(outcome.data !== undefined ? { structuredContent: outcome.data } : {}),
@@ -82,7 +82,7 @@ function guardedExecute(tool: RoomTool, store: RoomStore, me: Person) {
 function unguardedExecute(tool: RoomTool, store: RoomStore, me: Person) {
   return async (args: Record<string, unknown>) => {
     const collect: WorkItem[] = []
-    const outcome = tool.run({
+    const outcome = await tool.run({
       room: store.state,
       me,
       isSteward: false,

@@ -75,7 +75,9 @@ function render(): void {
         <p class="demoline">Opens a marketing room with work already on the board. You land
           as the manager, and a second window opens as Ella, one of your team, so both halves
           of the room are in front of you. Ask Ella's agent to draft and submit something,
-          then watch your log fill and an approval arrive.</p>
+          then watch your log fill and an approval arrive. Ella's agent has a computer of its
+          own in the room, a real Linux machine, so ask it to write and run a script as well.
+          You will see that it ran. You will not see what it ran.</p>
         <div class="btns">
           <button class="primary" id="demo">Open the demo room</button>
           <span id="derr" class="empty"></span>

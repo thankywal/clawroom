@@ -67,6 +67,21 @@ pattern today because each of those conversations happens in a different window.
 
 See [docs/ROOMS.md](docs/ROOMS.md) to write one.
 
+## A computer for every agent
+
+The moment a member's agent walks into a room it gets a Linux sandbox of its
+own: a shell, a filesystem under `/workspace`, Python and Node. `computer_run`,
+`computer_write_file`, `computer_read_file` and `computer_list_files` are work
+tier all the way down, so the room's log learns that a command ran and exited
+zero, and that a file of some size was written, and never the command, the
+output or the file. `computer_share_file` is share tier and says so in its
+description, because the moment a file lands on the board is the moment it
+stops being private, and the agent should choose that moment knowingly.
+
+One sandbox per person per room, addressed by a secret only that person's
+browser holds, asleep when idle. [docs/COMPUTER.md](docs/COMPUTER.md) has the
+boundary, and the part of it that is weaker than the draft-in-the-browser one.
+
 ## Three tiers, and what they really mean
 
 The tier on a tool is not a permission level. It is a statement about where the

@@ -25,6 +25,9 @@ const PLANS: Record<string, RehearsedCall[]> = {
     { name: 'draft_post', args: { itemId: 'post_1', headline: 'A smaller bill, the same product', copy: 'Same product, new pricing. Here is what changes for you.' } },
     { name: 'revise', args: { itemId: 'post_1', headline: 'A smaller bill, the same product', copy: 'Same product, new pricing, and nothing you rely on moves.' } },
     { name: 'submit_for_review', args: { itemId: 'post_1' } },
+    { name: 'computer_write_file', args: { path: 'wordcount.py', content: "import sys\nwords = open('draft.txt').read().split()\nprint(len(words), 'words')\n" } },
+    { name: 'computer_write_file', args: { path: 'draft.txt', content: 'Same product, new pricing, and nothing you rely on moves.' } },
+    { name: 'computer_run', args: { command: 'python3 wordcount.py' } },
     { name: 'publish', args: { itemId: 'post_1' } },
   ],
   classroom: [

@@ -13,6 +13,7 @@ import { createToolHost, namespaceName } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
 import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
+import { computerCounters } from '../engine/computer.js'
 import { roomById } from '../rooms/index.js'
 import { rememberRoom, roomLink, roomMeta, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
@@ -183,6 +184,9 @@ function render(): void {
           <div class="zhead"><h2>On this machine</h2><span class="note">never synced</span></div>
           <div class="zbody">
             <p>${drafts ? `${drafts} private working file${drafts > 1 ? 's' : ''}.` : 'Nothing private yet.'}</p>
+            ${(() => { const c = computerCounters(scratchFor(roomKey, person.id)); return c.runs || c.writes
+              ? `<p>Your computer: ${c.runs} command${c.runs === 1 ? '' : 's'} run, ${c.writes} file${c.writes === 1 ? '' : 's'} written. The room saw the counts, not the contents.</p>`
+              : '' })()}
             <p class="empty">Work-tier tools keep their payload here. The room gets a summary
               line and nothing else, and no tool in this engine can return it.</p>
             ${drafts ? '<div class="btns"><button class="ghost small" id="wipe">Delete everything the room never had</button></div>' : ''}
@@ -230,7 +234,7 @@ function render(): void {
     b.addEventListener('click', () => {
       const id = b.dataset['ok'] ?? b.dataset['no']
       const approval = store.state.approvals.find(a => a.id === id)
-      if (approval) settleApproval({ store, def, approval, by: person, ok: Boolean(b.dataset['ok']) })
+      if (approval) void settleApproval({ store, def, approval, by: person, ok: Boolean(b.dataset['ok']) })
     })
   }
 }

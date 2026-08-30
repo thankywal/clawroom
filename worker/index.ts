@@ -8,6 +8,8 @@
 
 import { complete, type AgentMsg, type AgentToolSpec } from './llm.js'
 export { RoomDO } from './room-do.js'
+export { Sandbox } from '@cloudflare/sandbox'
+import { handleDesk } from './desk.js'
 
 const MAX_BODY = 32 * 1024
 const MAX_MESSAGES = 40
@@ -73,6 +75,11 @@ export default {
       if (!res.ok) return json({ error: 'could not create room' }, 500)
       return json({ roomId, steward, member })
     }
+
+    // /api/desk/<roomId>: a member's own computer. Authenticated against the
+    // room, addressed by a desk secret only the member's browser holds.
+    const desk = url.pathname.match(/^\/api\/desk\/([^/]+)$/)
+    if (desk) return handleDesk(req, env, desk[1]!)
 
     // /api/room/<roomId>/(ws|meta). The Worker uses the id to pick a Durable
     // Object and nothing else; it never learns what kind of room it is.

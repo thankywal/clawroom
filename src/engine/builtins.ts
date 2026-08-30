@@ -11,6 +11,7 @@
 import type { RoomTool } from '../types.js'
 import type { RoomStore } from './store.js'
 import { evaluateSignals } from './signals.js'
+import { computerTools } from './computer.js'
 
 const noArgs = { type: 'object', properties: {}, additionalProperties: false }
 
@@ -56,6 +57,7 @@ export function builtinMemberTools(store: RoomStore): RoomTool[] {
         }
       },
     },
+    ...computerTools(store),
   ]
 }
 

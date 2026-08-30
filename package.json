@@ -16,5 +16,8 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "wrangler": "^4.127.0"
+  },
+  "dependencies": {
+    "@cloudflare/sandbox": "^0.12.9"
   }
 }

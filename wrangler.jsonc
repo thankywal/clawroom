@@ -3,9 +3,51 @@
   "name": "clawroom",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-08-28",
-  "assets": { "directory": "./dist", "binding": "ASSETS" },
-  "ai": { "binding": "AI" },
-  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "RoomDO" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDO"] }],
-  "observability": { "enabled": true }
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOM",
+        "class_name": "RoomDO"
+      },
+      {
+        "name": "Sandbox",
+        "class_name": "Sandbox"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "RoomDO"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "Sandbox"
+      ]
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "containers": [
+    {
+      "class_name": "Sandbox",
+      "image": "./Dockerfile",
+      "instance_type": "lite",
+      "max_instances": 20
+    }
+  ]
 }

@@ -80,13 +80,13 @@ function logEvent(a: {
   a.store.dispatch({ k: 'event', event })
 }
 
-export function runRoomTool(a: {
+export async function runRoomTool(a: {
   store: RoomStore
   tool: RoomTool
   me: Person
   isSteward: boolean
   args: Record<string, unknown>
-}): ToolOutcome {
+}): Promise<ToolOutcome> {
   const { store, tool, me, isSteward, args } = a
   const commit = tool.tier === 'commit'
   const collect: WorkItem[] = []
@@ -98,7 +98,7 @@ export function runRoomTool(a: {
     collect,
   })
 
-  const outcome = tool.run(ctx, args)
+  const outcome = await tool.run(ctx, args)
   const summary = outcome.summary ?? outcome.text
   const item = typeof args['itemId'] === 'string' ? args['itemId'] : undefined
 
@@ -138,13 +138,13 @@ export function runRoomTool(a: {
 
 /** Runs in the approver's browser, which is the only place the effect can
  *  happen, which is why Approval carries its args. */
-export function settleApproval(a: {
+export async function settleApproval(a: {
   store: RoomStore
   def: RoomDefinition
   approval: Approval
   by: Person
   ok: boolean
-}): void {
+}): Promise<void> {
   const { store, def, approval, by, ok } = a
 
   if (!ok) {
@@ -173,7 +173,7 @@ export function settleApproval(a: {
     writable: true, approved: true, collect,
   })
 
-  const outcome = tool.run(ctx, approval.args)
+  const outcome = await tool.run(ctx, approval.args)
   for (const w of collect) store.dispatch({ k: 'item', item: w })
   logEvent({
     store, actor: by, kind: 'human', tool: tool.name, tier: 'commit',

@@ -20,6 +20,24 @@ from the room. We do not defend the browser from itself.
 A stronger version would encrypt scratch under a key held outside the page.
 We did not build that.
 
+## The computer is on Cloudflare, not on the member's laptop
+
+Every member's agent now gets a Linux sandbox, and the room cannot see inside
+it: commands, output and files are work tier, the log gets counts and exit
+codes, and a sandbox is addressed by a secret that lives only in the browser
+that minted it. Another member holding the same room key cannot reach it.
+
+What that boundary is not is the member's own hardware. The sandbox runs on
+Cloudflare. The room cannot read it, the other members cannot read it, and the
+operator of this site could, in the sense that any host can open its own
+containers. That is a weaker promise than a draft in `localStorage` and
+`COMPUTER.md` says so in the same words. It is still a far stronger promise
+than the usual arrangement, where every agent's working files pass through the
+shared server as a matter of course.
+
+The endpoint is a pass-through that stores nothing, but "stores nothing" is a
+claim about code you can read, not a guarantee you can verify from outside.
+
 ## Capability links are bearer secrets
 
 Creating a room mints two links. The secret in the link is the credential, only

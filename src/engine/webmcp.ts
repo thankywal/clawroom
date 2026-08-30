@@ -70,7 +70,7 @@ export function createToolHost(o: { onCall?: (r: CallReport) => void } = {}): To
         }
       : {}),
     execute: async (args: Record<string, unknown>) => {
-      const outcome = runRoomTool({ store, tool, me, isSteward, args: args ?? {} })
+      const outcome = await runRoomTool({ store, tool, me, isSteward, args: args ?? {} })
       o.onCall?.({ name: tool.name, tier: tool.tier, outcome })
       return {
         content: [{ type: 'text' as const, text: outcome.text }],

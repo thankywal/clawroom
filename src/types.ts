@@ -29,7 +29,8 @@ export interface RoomTool {
   /** True when the tool returns text a member typed. The steward's agent should
    *  treat that as untrusted content, and WebMCP has a hint for exactly this. */
   untrusted?: boolean
-  run: (ctx: ToolContext, args: Record<string, any>) => ToolOutcome
+  /** May be async. A tool that talks to the member's own computer has to be. */
+  run: (ctx: ToolContext, args: Record<string, any>) => ToolOutcome | Promise<ToolOutcome>
 }
 
 export interface ToolOutcome {

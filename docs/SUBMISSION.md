@@ -74,6 +74,22 @@ No agent can approve. The steward's agent can read the queue and argue for
 something, but only a person clicks. An agent that could approve its own room's
 commits would make the whole tier decoration.
 
+## A computer for every agent
+
+The moment a member's agent walks into a room it gets a Linux sandbox of its own: a shell, a filesystem under `/workspace`, Python and Node, one per person per room, asleep when idle. Built on Cloudflare Sandbox.
+
+The point is not that agents can run code. It is where the code runs and who gets to see. `computer_run`, `computer_write_file`, `computer_read_file` and `computer_list_files` are work tier all the way down, so the room's log learns that a command ran and exited zero, and that a file of some size was written, and never the command, the output or the file:
+
+```
+Ella   local   computer_run          ran `python3 analyse.py` (exit 0, 14 lines out)
+Ella   local   computer_write_file   wrote report.md (2311 bytes)
+Ella   shared  computer_share_file   shared report.md to the board (2311 characters)
+```
+
+The first two lines are what the manager sees. The third is the agent choosing, through a tool whose description says exactly this, to make one file public. A sandbox is addressed by a secret minted in the member's browser and kept in their scratch, so another member holding the same room key cannot reach it. The self-test writes a canary sentence into a file, runs `cat` on it, and searches all of shared state for it before sharing it on purpose.
+
+`docs/COMPUTER.md` has the boundary, including the part that is weaker than a draft in the browser: the sandbox is on Cloudflare, not on the member's laptop. The room cannot read it, the other members cannot, the operator of the site could.
+
 ## What humans and agents can now do together
 
 A marketer's agent reads the board, writes three variants privately, submits
