@@ -14,6 +14,7 @@
 //   share   the payload becomes a WorkItem everyone can see.
 //   commit  nothing happens at all until a human approves.
 
+import { builtinMemberTools, builtinStewardTools } from './builtins.js'
 import type {
   Approval, Event, Person, RoomDefinition, RoomState, RoomTool, ToolContext,
   ToolOutcome, WorkItem,
@@ -156,7 +157,15 @@ export async function settleApproval(a: {
     return
   }
 
-  const tool = [...def.memberTools, ...def.stewardTools].find(t => t.name === approval.tool)
+  // Builtins and borrowed tools are not on the definition, and a commit-tier
+  // call can come from any of the three. Looking in only one place is how an
+  // approved call used to come back as "no such tool in this room".
+  const tool = [
+    ...def.memberTools,
+    ...def.stewardTools,
+    ...builtinMemberTools(store),
+    ...builtinStewardTools(store),
+  ].find(t => t.name === approval.tool)
   if (!tool) {
     logEvent({
       store, actor: by, kind: 'human', tool: approval.tool, tier: 'commit',

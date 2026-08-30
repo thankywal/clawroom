@@ -151,4 +151,41 @@ export interface RoomState {
   items: WorkItem[]
   events: Event[]
   approvals: Approval[]
+  /** Tools this room borrowed from somewhere else, after a person said yes. */
+  sources: ToolSource[]
+}
+
+/**
+ * A place a room got extra tools from: an OpenAPI document, a remote MCP
+ * server, or a page that registers its own WebMCP tools.
+ *
+ * A source is public by construction. It lives in shared state, everybody in
+ * the room gets the tools it carries, and only the steward can put one there.
+ * A member's agent can propose one, which parks like any other commit.
+ */
+export interface ToolSource {
+  id: string
+  kind: 'openapi' | 'mcp' | 'webmcp'
+  name: string
+  /** Where the description came from. */
+  url: string
+  /** Where the calls go. */
+  base: string
+  addedBy: MemberId
+  at: number
+  tools: SourceTool[]
+  /** Set when the tools cannot be called from here, and says why. */
+  note?: string
+}
+
+/** One borrowed tool. Same shape as a room tool, plus how to reach it. */
+export interface SourceTool {
+  name: string
+  description: string
+  tier: Tier
+  inputSchema: Record<string, unknown>
+  /** openapi: the verb and path template. mcp: the remote tool name. */
+  method?: string
+  path?: string
+  remote?: string
 }

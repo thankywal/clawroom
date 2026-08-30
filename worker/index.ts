@@ -10,6 +10,8 @@ import { complete, type AgentMsg, type AgentToolSpec } from './llm.js'
 export { RoomDO } from './room-do.js'
 export { Sandbox } from '@cloudflare/sandbox'
 import { handleDesk } from './desk.js'
+import { handleSource } from './source.js'
+import { handleDemoApi } from './demo-api.js'
 
 const MAX_BODY = 32 * 1024
 const MAX_MESSAGES = 40
@@ -80,6 +82,17 @@ export default {
     // room, addressed by a desk secret only the member's browser holds.
     const desk = url.pathname.match(/^\/api\/desk\/([^/]+)$/)
     if (desk) return handleDesk(req, env, desk[1]!)
+
+    // /api/source/<roomId>: reads a tool description from another origin, and
+    // proxies the calls the borrowed tools make. See worker/source.ts.
+    const source = url.pathname.match(/^\/api\/source\/([^/]+)$/)
+    if (source) return handleSource(req, env, source[1]!)
+
+    // A fixture API, so the tool-source feature has a URL that works on the
+    // first try. Not part of the room engine. See worker/demo-api.ts.
+    if (url.pathname.startsWith('/api/demo')) {
+      return handleDemoApi(req, url.pathname.slice('/api/demo'.length))
+    }
 
     // /api/room/<roomId>/(ws|meta). The Worker uses the id to pick a Durable
     // Object and nothing else; it never learns what kind of room it is.

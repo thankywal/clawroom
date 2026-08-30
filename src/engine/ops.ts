@@ -8,7 +8,7 @@
 // travels, inside the room key. The server therefore never learns what a room
 // is, which is the framework claim made structural rather than asserted.
 
-import type { Approval, Event, MemberId, Person, RoomState, WorkItem } from '../types.js'
+import type { Approval, Event, MemberId, Person, RoomState, ToolSource, WorkItem } from '../types.js'
 
 export type Role = 'steward' | 'member'
 
@@ -18,6 +18,8 @@ export type Op =
   | { k: 'item'; item: WorkItem }
   | { k: 'ask'; approval: Approval }
   | { k: 'settle'; approvalId: string; by: MemberId; ok: boolean }
+  | { k: 'source'; source: ToolSource }
+  | { k: 'unsource'; sourceId: string }
 
 export interface Envelope {
   /** Client generated, and the dedup key when the server echoes it back. */
@@ -67,6 +69,16 @@ export function applyOp(state: RoomState, env: Envelope): void {
       state.approvals = state.approvals.filter(a => a.id !== op.approvalId)
       return
     }
+    case 'source': {
+      const at = state.sources.findIndex(s => s.id === op.source.id)
+      if (at === -1) state.sources.push(op.source)
+      else state.sources[at] = op.source
+      return
+    }
+    case 'unsource': {
+      state.sources = state.sources.filter(s => s.id !== op.sourceId)
+      return
+    }
   }
 }
 
@@ -80,5 +92,7 @@ export function opSummary(env: Envelope): string {
     case 'item':   return `${op.item.title} is ${op.item.state}`
     case 'ask':    return `asked to ${op.approval.describe}`
     case 'settle': return op.ok ? 'approved' : 'declined'
+    case 'source': return `added ${op.source.tools.length} tools from ${op.source.name}`
+    case 'unsource': return 'removed a tool source'
   }
 }

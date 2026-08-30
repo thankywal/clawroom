@@ -15,6 +15,7 @@ import { evaluateSignals } from '../engine/signals.js'
 import { clearPrivate, me, scratchFor } from '../engine/identity.js'
 import { computerCounters, destroyComputer } from '../engine/computer.js'
 import { computerUsage } from '../engine/signals.js'
+import { addSourceAsHuman, inspectSource, removeSource, sourceFingerprint, sourceToolName } from '../engine/sources.js'
 import { roomById } from '../rooms/index.js'
 import { deleteRoom, forgetRoom, rememberRoom, roomLink, roomMeta, rotateInvite, savedRooms, type SavedRoom } from '../engine/rooms-local.js'
 import { createAgent, systemPrompt, toolSpecs, type Agent } from '../agent/agent.js'
@@ -24,6 +25,11 @@ import { resolveModelContext } from '../engine/webmcp.js'
 /** What a person typed into their own computer's console, and what came back.
  *  It goes through the same WebMCP tool the agent uses, so it lands in the
  *  same log line: "ran ...", never the output. */
+/** What the Add a source form is holding: nothing, a URL being read, or a
+ *  parsed source waiting for the person to say yes. */
+let sourceDraft: { url: string; busy: boolean; parsed?: any; error?: string } | null = null
+let sourcePrint = ''
+
 const tty: { cmd: string; out: string }[] = []
 let ttyBusy = false
 import { connectRoom, type Status, type Transport } from '../sync/client.js'
@@ -121,6 +127,31 @@ function approvalRow(a: Approval): string {
       <button class="ghost" data-no="${a.id}">Decline</button>
     </div>` : '<p class="dim">Only a person in this room can approve. No agent has that tool.</p>'}
   </div>`
+}
+
+let remounting = false
+
+/**
+ * The tool surface follows shared state.
+ *
+ * When a person approves a source, the op reaches every browser in the room,
+ * and every browser remounts. So document.modelContext changes for everyone
+ * at the same moment, and an agent that had asked for the tools a minute ago
+ * gets them without anybody reloading. It is the one part of this room's
+ * surface that is not decided by the code we shipped, which is exactly what
+ * the API's ontoolchange event exists for.
+ */
+async function watchSources(): Promise<void> {
+  const print = sourceFingerprint(store.state)
+  if (print === sourcePrint || remounting) return
+  sourcePrint = print
+  remounting = true
+  try {
+    surface = await host.mount(def, { store, me: person, isSteward })
+  } finally {
+    remounting = false
+  }
+  render()
 }
 
 function render(): void {
@@ -232,6 +263,44 @@ function render(): void {
     </div>
 
     <section class="zone" style="margin-top:14px">
+      <div class="zhead">
+        <h2>Borrowed tools</h2>
+        <span class="note">${s.sources.length ? `${s.sources.length} source${s.sources.length === 1 ? '' : 's'}, everyone in the room has them` : 'anything this room borrowed from elsewhere'}</span>
+      </div>
+      <div class="zbody">
+        ${s.sources.length ? `<table class="usage"><thead><tr><th>Source</th><th>Kind</th><th>Tools</th><th>Added by</th>${isSteward ? '<th></th>' : ''}</tr></thead>
+          <tbody>${s.sources.map(src => `<tr>
+            <td title="${esc(src.url)}">${esc(src.name)}</td>
+            <td>${esc(src.kind)}</td>
+            <td>${src.tools.length ? esc(src.tools.map(t => sourceToolName(src, t)).slice(0, 3).join(', ')) + (src.tools.length > 3 ? ` and ${src.tools.length - 3} more` : '') : esc(src.note ?? 'none')}</td>
+            <td>${esc(nameOf(src.addedBy).name)}</td>
+            ${isSteward ? `<td><button class="ghost small danger" data-drop="${esc(src.id)}">Remove</button></td>` : ''}
+          </tr>`).join('')}</tbody></table>` : ''}
+
+        ${sourceDraft?.parsed ? `<div class="banner">
+          <b>${esc(String(sourceDraft.parsed.name ?? sourceDraft.url))}</b> (${esc(String(sourceDraft.parsed.kind))}):
+          ${(sourceDraft.parsed.tools ?? []).length} tools.
+          ${sourceDraft.parsed.note ? `<br>${esc(String(sourceDraft.parsed.note))}` : ''}
+          <div class="srclist">${(sourceDraft.parsed.tools ?? []).slice(0, 14).map((t: any) => `<span class="chip ${esc(t.tier)}">${esc(t.tier)} ${esc(t.name)}</span>`).join('')}</div>
+          <div class="btns">
+            <button class="primary small" id="srcadd">${isSteward ? 'Add to the room' : 'Ask the ' + esc(def.stewardRole) + ' to add it'}</button>
+            <button class="ghost small" id="srccancel">Cancel</button>
+          </div>
+        </div>` : ''}
+        ${sourceDraft?.error ? `<p class="empty">${esc(sourceDraft.error)}</p>` : ''}
+
+        <div class="composer">
+          <input id="srcurl" placeholder="https://api.example.com/openapi.json, or an MCP server URL" value="${esc(sourceDraft?.url ?? '')}" ${sourceDraft?.busy ? 'disabled' : ''}>
+          <button class="ghost" id="srcread" ${sourceDraft?.busy ? 'disabled' : ''}>${sourceDraft?.busy ? 'Reading' : 'Read it'}</button>
+        </div>
+        <p class="empty">Reads an OpenAPI document or a remote MCP server and turns its operations into
+          tools for this room, tiered the same way as everything else. ${isSteward
+            ? 'You can add one because you are a person, not an agent. An agent can only propose one, through <code>add_tool_source</code>, and it parks here for you.'
+            : `Yours goes to the ${esc(def.stewardRole)} as an approval. Nothing registers until they say yes, and then everyone in the room gets it at once.`}</p>
+      </div>
+    </section>
+
+    <section class="zone" style="margin-top:14px">
       <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
       <div id="feed">${s.events.length ? s.events.slice(-60).map(logRow).join('') : '<p class="empty">Nothing yet.</p>'}</div>
     </section>`
@@ -249,6 +318,64 @@ function render(): void {
     try { await navigator.clipboard.writeText(invite) } catch { /* clipboard can be blocked */ }
     if (b) { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite link' }, 1600) }
   })
+
+  const srcBox = el('srcurl') as HTMLInputElement | null
+  const readSource = async (): Promise<void> => {
+    const url = srcBox?.value.trim()
+    if (!url) return
+    sourceDraft = { url, busy: true }
+    render()
+    const parsed = await inspectSource(store, url)
+    sourceDraft = parsed.error
+      ? { url, busy: false, error: String(parsed.error) }
+      : { url, busy: false, parsed }
+    render()
+  }
+  el('srcread')?.addEventListener('click', () => { void readSource() })
+  srcBox?.addEventListener('keydown', e => { if ((e as KeyboardEvent).key === 'Enter') void readSource() })
+  el('srccancel')?.addEventListener('click', () => { sourceDraft = null; render() })
+  el('srcadd')?.addEventListener('click', async () => {
+    const draft = sourceDraft
+    if (!draft?.parsed) return
+    if (isSteward) {
+      // A person clicking a button in their own room. No tool, no approval,
+      // and the log says a human did it.
+      const added = addSourceAsHuman(store, draft.parsed, person.id)
+      if (added) {
+        store.dispatch({ k: 'event', event: {
+          at: Date.now(), actor: person.id, kind: 'human', tool: 'add_tool_source', tier: 'share',
+          summary: `added ${added.tools.length} tools from ${added.name}`,
+        } })
+      }
+    } else {
+      // A member asks. This goes through the commit tier like everything else.
+      const handle = await host.handle('add_tool_source')
+      const mc = resolveModelContext()
+      if (mc && handle) await mc.executeTool(handle, JSON.stringify({ url: draft.url }))
+    }
+    sourceDraft = null
+    render()
+  })
+  for (const b of Array.from(document.querySelectorAll('[data-drop]')) as HTMLElement[]) {
+    // Two clicks rather than a confirm dialog, same as the header buttons.
+    let until = 0
+    b.addEventListener('click', () => {
+      const id = b.dataset['drop']
+      if (!id) return
+      if (Date.now() > until) {
+        until = Date.now() + 4000
+        b.textContent = 'Really remove?'
+        setTimeout(() => { if (Date.now() > until) b.textContent = 'Remove' }, 4200)
+        return
+      }
+      removeSource(store, id)
+      store.dispatch({ k: 'event', event: {
+        at: Date.now(), actor: person.id, kind: 'human', tool: 'remove_tool_source', tier: 'share',
+        summary: 'removed a tool source',
+      } })
+      render()
+    })
+  }
 
   const cmdBox = el('cmd') as HTMLInputElement | null
   const runCmd = async (): Promise<void> => {
@@ -407,6 +534,7 @@ function switchRoom(id: string): void {
 
 async function connect(): Promise<void> {
   store.subscribe(render)
+  store.subscribe(() => { void watchSources() })
 
   link = connectRoom({
     roomId,
@@ -425,6 +553,8 @@ async function connect(): Promise<void> {
         def = roomById(w.defId)
         store = createStore({ def, roomKey, me: person, role: w.role })
         store.subscribe(render)
+        store.subscribe(() => { void watchSources() })
+        sourcePrint = ''
         store.setSink(env => link?.send(env))
       }
       // History goes into whichever store survived the line above. It used to

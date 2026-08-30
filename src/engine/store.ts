@@ -42,6 +42,7 @@ export function createStore(args: {
     items: [],
     events: [],
     approvals: [],
+    sources: [],
   }
 
   const subs = new Set<(s: RoomState) => void>()

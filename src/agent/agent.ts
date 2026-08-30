@@ -55,7 +55,7 @@ export function unwrapText(raw: unknown): string {
 
 export function toolSpecs(def: RoomDefinition, store: RoomStore, isSteward: boolean): AgentToolSpec[] {
   const tools: RoomTool[] = isSteward
-    ? [...def.stewardTools, ...builtinStewardTools()]
+    ? [...def.stewardTools, ...builtinStewardTools(store)]
     : [...def.memberTools, ...builtinMemberTools(store)]
   return tools.map(t => ({
     name: t.name,

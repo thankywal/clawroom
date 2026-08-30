@@ -87,7 +87,7 @@ export function createToolHost(o: { onCall?: (r: CallReport) => void } = {}): To
       if (!mc) return []
 
       const tools = isSteward
-        ? [...def.stewardTools, ...builtinStewardTools()]
+        ? [...def.stewardTools, ...builtinStewardTools(store)]
         : [...def.memberTools, ...builtinMemberTools(store)]
 
       const wanted = tools.map(t => t.name)

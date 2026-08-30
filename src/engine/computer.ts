@@ -55,6 +55,12 @@ function roomKeyFromUrl(): string {
   return keyOverride ?? new URLSearchParams(location.search).get('k') ?? ''
 }
 
+/** The same key the computer uses, for anything else that has to prove it is
+ *  in this room. Honours the self-test's override. */
+export function currentRoomKey(): string {
+  return roomKeyFromUrl()
+}
+
 /** Minted once per member per room, in the browser, and never sent anywhere
  *  except as the address of that member's own sandbox. */
 function deskSecret(ctx: ToolContext): string {
