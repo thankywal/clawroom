@@ -248,6 +248,9 @@ The same engine, running a support desk. Three tickets, three failed diagnostics
 one product bug. Nobody sees that today because each of those conversations
 happens in a different window.
 
+![The manager's first screen: one action waiting, and the approval card shows
+the headline, the words and the brief, not just a title.](docs/media/11-approval-with-the-words.png)
+
 ![The front door, offering a one click demo room.](docs/media/05-front-door.png)
 
 ![The agent's own computer: it wrote a script, ran it twice, and shared it to
