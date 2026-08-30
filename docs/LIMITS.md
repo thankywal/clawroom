@@ -123,6 +123,43 @@ them, and a member who never comes back leaves a sandbox that Cloudflare
 keeps until its idle timeout and its stored files after that. A real
 deployment would want a sweep.
 
+## A borrowed tool is only as trustworthy as where it came from
+
+Adding a source needs a person, and the tier rules apply to what it brings.
+Neither of those makes the far end honest. A borrowed tool's description is
+written by whoever runs that API, and it arrives in the agent's context: an
+OpenAPI summary is untrusted text, and the room marks every borrowed tool
+`untrusted` for that reason. It cannot stop a description that argues for its
+own use.
+
+The address guard refuses loopback, the private ranges and the metadata
+address by name and by literal. It does not resolve the hostname first, so a
+public name pointing at a private address gets through. A deployment that
+mattered would resolve and check, and would keep an allowlist.
+
+Calls go out from the Worker, so the far end sees Cloudflare rather than the
+member. There is no per-source credential store yet either: a source that
+needs a key cannot be added at all, which is a gap rather than a decision.
+
+## Bringing your own model means your key is in a browser
+
+The key you paste sits in `localStorage` and is sent with each agent request
+to this site, which forwards it to the endpoint you named and keeps nothing.
+It never reaches the room, another member, or shared state.
+
+That is still a key in a browser passing through somebody else's Worker. We
+do not log it and there is no code that stores it, but "we store nothing" is a
+claim about code you can read rather than something you can verify from
+outside. Use a scoped or throwaway key, and revoke it afterwards.
+
+## The door is a social gate, not an identity system
+
+A steward can make each arrival wait to be let in, and the server enforces it:
+an unadmitted member's ops are refused, not just hidden. What it is not is
+proof of who somebody is. Identity here is a name in one browser, so a person
+turned away can come back as somebody else with the same link. The fix is to
+rotate the invite, which the steward can also do.
+
 ## The browser tool reads what the page says, not what the page does
 
 `computer_browse` returns visible text after `domcontentloaded`. Pages that

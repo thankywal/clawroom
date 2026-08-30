@@ -98,6 +98,53 @@ One sandbox per person per room, addressed by a secret only that person's
 browser holds, asleep when idle. [docs/COMPUTER.md](docs/COMPUTER.md) has the
 boundary, and the part of it that is weaker than the draft-in-the-browser one.
 
+## Tools the room borrowed
+
+A room's own tools ship with the site. A **source** is the second way in: point
+the room at an OpenAPI document or a remote MCP server and its operations
+become tools for everyone in the room, tiered by the same three rules. Reads
+are work, writes are share, and anything that sounds irreversible is commit and
+waits for a person.
+
+What makes it safe to offer is that `add_tool_source` is itself commit tier. An
+agent can propose a source; nothing registers. A person approves, the op
+reaches every browser in the room, every browser remounts, and
+`document.modelContext` changes for all of them at the same instant. That is
+what the API's live surface is for.
+
+Try it on the fixture the site serves, which has a refund in it:
+
+    https://clawroom.thankywal-bkk.workers.dev/api/demo/openapi.json
+
+or on a real third-party MCP server that needs no key:
+
+    https://mcp.deepwiki.com/mcp
+
+[docs/SOURCES.md](docs/SOURCES.md) has the tier rules, the address guard, and
+why a page that registers its own WebMCP tools can be seen but not called.
+
+## Bring your own model
+
+The room hosts a 70B on Workers AI so that a visitor with no subscription can
+watch the loop run. Under the composer there is a line saying which model is in
+use and a link to change it: any OpenAI-compatible endpoint, with presets for
+OpenAI, Groq and OpenRouter.
+
+The key stays in your browser, beside your drafts. It rides each request to
+this site's own `/api/agent`, which forwards it to the endpoint you named and
+keeps nothing. It never reaches the room, the Durable Object or another member,
+and no tool in this engine can read it.
+
+## A door, when the link is not enough
+
+A room starts open: the invite link is the whole gate. A steward can set the
+door to ask, and then each arrival waits by name until a person lets them in.
+
+Both halves are real. The page shows a waiting screen and takes the tool
+surface down, so an agent outside sees an empty room. The Durable Object
+refuses ops from anyone who has not been admitted, which is the half that
+means it.
+
 ## Three tiers, and what they really mean
 
 The tier on a tool is not a permission level. It is a statement about where the
@@ -203,8 +250,8 @@ you without any setup.
   drafted twice, submitted, asked to publish, got parked, and reported that
   nothing had shipped. Transcript in `docs/evidence/`.
 - `/selftest` calls every tool through `executeTool()` with no agent involved:
-  **18/18** against the deployed origin in a clean Chrome profile with no flags.
-  Six of those cases test the claim rather than a function. One writes a
+  **22/22** against the deployed origin in a clean Chrome profile with no flags.
+  Nine of those cases test the claim rather than a function. One writes a
   sentinel sentence into a private draft and then searches all of shared state
   for it. One calls `publish`, checks the board did not move, approves as a
   human, and only then expects the effect. Four do the same for the computer:
@@ -212,6 +259,9 @@ you without any setup.
   and only `computer_share_file` puts it on the board; a server comes up on a
   port, the page it serves is fetched and stays out of shared state until
   `computer_share_page`; and a snapshot survives `rm -rf` of the workspace.
+  Three more do it for a borrowed API: a source becomes four tools with the
+  right tiers, a borrowed read never reaches the board, and a borrowed refund
+  parks until a person approves it and only then takes effect.
 - `/smoke` is the raw WebMCP capability probe.
 - [docs/LIMITS.md](docs/LIMITS.md) is the other half of that honesty: where the
   boundary is softer than the pitch, what no third-party agent has yet done,

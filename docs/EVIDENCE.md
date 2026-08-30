@@ -103,7 +103,7 @@ models in general ignore a tool description.
 Live at [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html).
 
 Every ClawRoom tool called through `document.modelContext.executeTool()` with
-no agent involved. 18 of 18 pass against the deployed origin in a clean Chrome
+no agent involved. 22 of 22 pass against the deployed origin in a clean Chrome
 profile with no flags set.
 
 Four of those cases test the claim rather than a function, two for drafts
@@ -184,7 +184,7 @@ order, on 2026-08-30, using a freshly minted room and a member key:
     destroy  {"ok":true}
 
 The same sequence runs inside `/selftest.html` through `executeTool()`, which
-is where the 18/18 comes from. What the probe adds is the two refusals, which
+is where the 22/22 comes from. What the probe adds is the two refusals, which
 the self test does not exercise.
 
 ## Reproducing

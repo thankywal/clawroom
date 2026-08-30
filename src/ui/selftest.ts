@@ -10,6 +10,7 @@ import type { RoomStore } from '../engine/store.js'
 import { createStore } from '../engine/store.js'
 import { createToolHost, namespaceName, resolveModelContext } from '../engine/webmcp.js'
 import { settleApproval } from '../engine/tiers.js'
+import { addSourceAsHuman, inspectSource, sourceToolName } from '../engine/sources.js'
 import { campaign } from '../rooms/campaign.js'
 import { clearPrivate } from '../engine/identity.js'
 import { setComputerAccess } from '../engine/computer.js'
@@ -195,6 +196,51 @@ async function main(): Promise<void> {
       /Saved snapshot/.test(snap.text) && !gone.text.includes(CANARY) && /Restored/.test(restored.text) && back.text.includes(CANARY),
       `${snap.text} | after rm: ${gone.text.includes(CANARY) ? 'still there?!' : 'gone'} | ${restored.text} | after restore: ${back.text.includes(CANARY) ? 'canary is back' : 'MISSING'}`,
     )
+  }
+
+  // 7b. tools the room borrowed. Same tier rules, on an API the room had
+  //     never heard of when it was built.
+  const parsed = await inspectSource(store, `${location.origin}/api/demo/openapi.json`)
+  const src = parsed.error ? null : addSourceAsHuman(store, parsed, ME.id)
+  report(
+    'a source becomes tools', 'borrowed, after a person said yes',
+    Boolean(src) && (src?.tools.length ?? 0) === 4,
+    src ? `${src.name}: ${src.tools.map(t => `${t.tier} ${t.name}`).join(', ')}` : String(parsed.error),
+  )
+
+  if (src) {
+    await host.mount(campaign, { store, me: ME, isSteward: false })
+    const listName = src.tools.map(t => sourceToolName(src, t)).find(n => n.endsWith('list_orders'))!
+    const refundName = src.tools.map(t => sourceToolName(src, t)).find(n => n.endsWith('refund_order'))!
+
+    const listed = await call(listName, {})
+    const leaked3 = JSON.stringify({ items: store.state.items, events: store.state.events })
+    report(
+      'a borrowed read stays out of shared state', 'work, borrowed',
+      /HTTP 200/.test(listed.text) && listed.text.includes('Rowan Bakery') && !leaked3.includes('Rowan Bakery'),
+      `${listed.text.split('\n')[0]} | on the board: ${leaked3.includes('Rowan Bakery') ? 'YES, FAILED' : 'no'}`,
+    )
+
+    const asked = await call(refundName, { id: 'HF-1041', amount: 5, reason: 'self test' })
+    const handle2 = String((asked.data as { approvalId?: string } | undefined)?.approvalId ?? '')
+    const stillOpen = !JSON.stringify(store.state.items).includes('refund')
+    report(
+      'a borrowed refund parks', 'commit, borrowed',
+      /PENDING APPROVAL/.test(asked.text) && stillOpen,
+      `handle ${handle2 || 'none'} | nothing on the board yet: ${stillOpen}`,
+    )
+
+    const waiting2 = store.state.approvals.find(a => a.id === handle2)
+    if (waiting2) {
+      await settleApproval({ store, def: campaign, approval: waiting2, by: STEWARD, ok: true })
+    }
+    const applied = store.state.items.find(i => i.title.includes('refund'))
+    report(
+      'and applies once a person approves', 'human in the loop, borrowed',
+      Boolean(applied) && JSON.stringify(applied?.body).includes('refunded'),
+      applied ? `${applied.title} is ${applied.state}` : 'nothing landed on the board',
+    )
+    await host.mount(campaign, { store, me: ME, isSteward: false })
   }
 
   // 8. the steward's view, and what it cannot see

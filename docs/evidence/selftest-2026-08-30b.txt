@@ -1,0 +1,20 @@
+/selftest.html against https://clawroom.thankywal-bkk.workers.dev, 2026-08-30,
+headless Chrome 151 stable, clean profile, no flags. Every case goes through
+document.modelContext.executeTool() with no agent involved.
+
+tally: 22/22 passed on document.modelContext
+
+The nine that test a claim rather than a function:
+
+  the draft never reaches shared state    PASS  shared state holds the summary line and no draft copy
+  publish parks instead of publishing     PASS  handle apv_u1mp, board still review, 1 waiting
+  approval applies the effect             PASS  post_1 is now done, 0 waiting
+  the file never reaches shared state     PASS  "ran a command" and "wrote notes.md", not the file
+  computer_fetch_local                    PASS  HTTP 200, page in shared state: no
+  computer_snapshot and computer_restore  PASS  saved 4 KB, after rm gone, restored, canary back
+  a source becomes tools                  PASS  work list_orders, work get_order, share add_note, commit refund_order
+  a borrowed read stays out of shared state PASS HTTP 200, on the board: no
+  a borrowed refund parks                 PASS  handle apv_syk3, nothing on the board yet
+  and applies once a person approves      PASS  POST /orders/{id}/refund is done
+
+The other thirteen are the room's own tools and the computer, all passing.
