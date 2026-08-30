@@ -12,6 +12,7 @@ export { Sandbox } from '@cloudflare/sandbox'
 import { handleDesk } from './desk.js'
 import { handleSource } from './source.js'
 import { handleDemoApi } from './demo-api.js'
+import { handleCloudProbe } from './cloud-probe.js'
 
 const MAX_BODY = 32 * 1024
 const MAX_MESSAGES = 40
@@ -94,6 +95,9 @@ export default {
 
     // A fixture API, so the tool-source feature has a URL that works on the
     // first try. Not part of the room engine. See worker/demo-api.ts.
+    // Measures whether a browser in the cloud has WebMCP at all.
+    if (url.pathname === '/api/cloudprobe') return handleCloudProbe(req, env)
+
     if (url.pathname.startsWith('/api/demo')) {
       return handleDemoApi(req, url.pathname.slice('/api/demo'.length))
     }

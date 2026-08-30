@@ -19,6 +19,17 @@
 // Chrome does the work because WebMCP lives in a document. Point it at a
 // browser you are already running with a debugging port, or let it start its
 // own headless one.
+//
+// The same file has an away mode, for when you want the work to carry on
+// without you:
+//
+//   node scripts/clawroom-mcp.mjs "<room link>" --away "draft two options and
+//     submit the better one"
+//
+// Run that on any machine that is not your laptop and the room is simply open
+// somewhere else: its own in-page agent does the task, its commit-tier calls
+// park for a person, and you read the log in the morning. There is no second
+// engine anywhere in this file, in either mode. That is the point.
 
 import { spawn } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
@@ -228,6 +239,60 @@ async function selftest(page) {
   console.log('\nThe bridge holds no tools of its own. Every line above went through the page.')
 }
 
+// Away mode. The room's own agent does the work; this script types the task
+// and watches. Everything that happens is a tool call the page made, so the
+// tiers hold and a commit still waits for a human.
+async function away(page, task) {
+  const provider = process.env['CLAWROOM_MODEL_BASE'] && process.env['CLAWROOM_MODEL_KEY']
+    ? {
+        base: process.env['CLAWROOM_MODEL_BASE'],
+        key: process.env['CLAWROOM_MODEL_KEY'],
+        model: process.env['CLAWROOM_MODEL'] ?? 'gpt-5',
+      }
+    : null
+  if (provider) {
+    await page.evaluate(`localStorage.setItem('clawroom:model', ${JSON.stringify(JSON.stringify(provider))}); location.reload(); return 1`)
+    await sleep(3000)
+    for (let i = 0; i < 40; i++) {
+      if (await page.evaluate('return !!document.getElementById("say")')) break
+      await sleep(500)
+    }
+    log(`using ${provider.model}`)
+  }
+
+  const before = await page.evaluate('return document.querySelectorAll("#feed > *").length')
+  await page.evaluate(`
+    const i = document.getElementById('say')
+    if (!i) return false
+    i.value = ${JSON.stringify(task)}
+    document.getElementById('send').click()
+    return true
+  `)
+  log('handed the task to the room')
+
+  const until = Date.now() + 1000 * 60 * 10
+  while (Date.now() < until) {
+    const busy = await page.evaluate('return !!document.querySelector("#send[disabled]")')
+    if (!busy) break
+    await sleep(1500)
+  }
+
+  const done = await page.evaluate(`
+    const rows = [...document.querySelectorAll('#feed > *')].slice(${before})
+    const asks = [...document.querySelectorAll('.ask')].map(a => a.innerText.replace(/\\s+/g, ' ').trim())
+    return { rows: rows.map(r => r.innerText.replace(/\\s+/g, ' ').trim()), asks }
+  `)
+  console.log(`\nWhat the room saw while you were away (${done.rows.length} entries):`)
+  for (const r of done.rows) console.log('  ' + r)
+  if (done.asks.length) {
+    console.log(`\nWaiting on a person (${done.asks.length}):`)
+    for (const a of done.asks) console.log('  ' + a)
+    console.log('\nNothing in that list has happened. It will not until somebody in the room approves it.')
+  } else {
+    console.log('\nNothing is waiting on a person.')
+  }
+}
+
 const child = await ensureChrome()
 const page = await openRoom()
 log(`joined ${ROOM}`)
@@ -235,6 +300,14 @@ process.on('exit', () => { try { child?.kill() } catch { /* already gone */ } })
 
 if (process.argv.includes('--selftest')) {
   await selftest(page)
+  await page.close()
+  process.exit(0)
+}
+const awayAt = process.argv.indexOf('--away')
+if (awayAt >= 0) {
+  const task = process.argv[awayAt + 1]
+  if (!task) { log('--away needs a task in quotes'); process.exit(2) }
+  await away(page, task)
   await page.close()
   process.exit(0)
 }

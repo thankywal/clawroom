@@ -139,6 +139,19 @@ restart, a commit-tier call parks for a human, and the tier engine stays in the
 one place it can be enforced. If the bridge held the tools, the room would have
 two enforcement points and one of them would drift.
 
+The same script has an away mode, for work that should carry on without you:
+
+```
+node scripts/clawroom-mcp.mjs "<room link>" --away "draft two options and submit the better one"
+```
+
+Run it on a VM and the room is simply open somewhere else. The agent works all
+night and ships nothing, because commit tier still waits for a person; you wake
+up to a queue of decisions. [docs/AWAY.md](docs/AWAY.md) covers all four places
+an agent can run, including the measured reason it cannot be Cloudflare Browser
+Rendering: that browser is Chrome 128 and WebMCP arrived in 151, so
+`document.modelContext` is not there at all. `/api/cloudprobe` measures it.
+
 Transcripts of both a stdio JSON-RPC client and the bridge's own end-to-end run
 are in `docs/evidence/mcp-bridge-2026-08-30.txt`.
 

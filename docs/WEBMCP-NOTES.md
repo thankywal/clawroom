@@ -136,3 +136,22 @@ Read only the first and tool calling still appears to work, because the calls
 come through, while the model's closing message is silently always empty. There
 is no error. `worker/llm.ts` reads both, and synthesises call ids, since the
 flat shape has none.
+
+
+## Cloudflare Browser Rendering has no WebMCP (measured 2026-08-30)
+
+A site that runs on Cloudflare and wants to offer "run my agent in the cloud"
+reaches for Browser Rendering. It cannot be used for WebMCP work yet.
+
+    GET /api/cloudprobe?url=<a live room>
+
+    "ua": "Mozilla/5.0 (X11; Linux x86_64) ... HeadlessChrome/128.0.0.0 ..."
+    "probe": { "namespace": null, "tools": 0, "keys": [] }
+
+Chrome 128 against an API that landed in 151. Neither `document.modelContext`
+nor `navigator.modelContext` exists, and no property of `document` matches
+/model/i, so this is absence rather than a naming difference or a missing
+origin trial token.
+
+The probe stays in the repo. It is four lines of page script and it will
+answer yes the day that image moves forward, without anybody editing it.
