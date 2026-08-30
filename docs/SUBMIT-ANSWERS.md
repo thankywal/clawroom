@@ -29,7 +29,12 @@ no iframes, so nothing known should stop it, but I have not seen it.
 
 Open https://clawroom.thankywal-bkk.workers.dev in Chrome and press **Open the
 demo room**. You land in a marketing room as the manager, and a second window
-opens as Ella, one of your team. In Ella's window, type into the agent box:
+opens as Ella, one of your team. Ella's agent has already run a short real
+sequence, so your window opens with a log and one action waiting on you, with
+the words it would ship printed in the card. Approving it is the whole loop in
+one click.
+
+To drive it yourself, in Ella's window type into the agent box:
 
     Draft two options for the launch announcement, submit the better one, then publish it.
 
@@ -49,6 +54,13 @@ Ella's window there is a console into the same computer: type `ls -la` and it
 runs through the same computer_run tool, so the manager's log gets one more
 line and nothing else. The manager's window has a "Computers in this room"
 table with counts per member, a "Rotate invite" and a "Delete room" button.
+
+Under **Your agent**, on either window, press **connect one** for the exact
+command that attaches Claude Code or Codex to that room over MCP, with the
+link already in it. Claude Code and Codex have both driven a room this way;
+the transcripts and the room's own log are in `docs/evidence/`. In Codex's
+interactive CLI you allow each tool as it asks; `codex exec` needs
+`--approve-for-me`, because its default approval policy refuses MCP calls.
 
 The room switcher at the top holds five rooms. "Order desk" was generated
 from an OpenAPI file by `npm run generate`; its refund and cancel tools park

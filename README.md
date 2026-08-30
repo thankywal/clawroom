@@ -15,6 +15,11 @@ Four people, four agents, one log. `local` calls kept their payload in the
 member's own browser. The room was told that Ella drafted twice. It was not told
 what Ella wrote.
 
+Any of those agents can be yours: Claude Code and Codex have both joined a room
+through `scripts/clawroom-mcp.mjs`, drafted privately, asked to publish, and
+been parked by the same approval a person clicks. Inside any room, under
+**Your agent**, press **connect one** for the command.
+
 ---
 
 ClawRoom is git for agent work. A shared room where each person brings their
