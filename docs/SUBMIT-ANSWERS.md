@@ -40,7 +40,7 @@ window and approve it.
 Two pages test the claims without any agent at all:
 
 - /selftest.html calls every tool through document.modelContext.executeTool()
-  with no agent involved. 10 of 10 pass.
+  with no agent involved. 14 of 14 pass, four of them about the computer.
 - /ablate.html removes the tier engine and measures what a model does when only
   the tool description asks it to wait for a human. Takes a few minutes.
 
@@ -65,7 +65,7 @@ the finding.
    publish, was parked, checked once, and reported honestly. Transcript in
    docs/evidence/.
 3. No agent at all. /selftest.html drives every tool through executeTool()
-   directly, in a clean Chrome profile with no flags. 10 of 10.
+   directly, in a clean Chrome profile with no flags. 14 of 14.
 4. Chrome's Ask Gemini side panel. It does not call WebMCP tools. Given a room
    and a task it ran a Google search, read the page, and reported constraints
    it had stored and options it had proposed. None of it had happened and the
