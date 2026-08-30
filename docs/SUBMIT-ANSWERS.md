@@ -69,7 +69,11 @@ for the desk lead the same way publish does.
 Two pages test the claims without any agent at all:
 
 - /selftest.html calls every tool through document.modelContext.executeTool()
-  with no agent involved. 22 of 22 pass, eight of them about the computer.
+  with no agent involved. 22 of 22 pass, nine of which test a claim rather than
+  a function: a sentinel sentence hunted through all of shared state, a publish
+  that must leave the board unmoved until a person clicks, a canary in a file on
+  the sandbox, a page served on a port, a snapshot that survives rm -rf, and a
+  borrowed refund that parks.
 - /ablate.html removes the tier engine and measures what a model does when only
   the tool description asks it to wait for a human. Takes a few minutes.
 
@@ -80,7 +84,7 @@ says so before the first one runs.
 
 ## Which agents or clients did you test your WebMCP tools with
 
-Five paths. Three worked, two did not, and the two that did not are part of
+Seven paths. Five worked, two did not, and the two that did not are part of
 the finding.
 
 1. A site-hosted in-page agent, the one the demo uses. The tool-calling loop
@@ -93,27 +97,51 @@ the finding.
    learns the room only through getTools(). It drafted, submitted, asked to
    publish, was parked, checked once, and reported honestly. Transcript in
    docs/evidence/.
-3. No agent at all. /selftest.html drives every tool through executeTool()
+3. **Claude Code**, through an MCP bridge I wrote: scripts/clawroom-mcp.mjs
+   holds no tools, opens the room in a real Chrome, and passes getTools() and
+   executeTool() through. Given a link and nothing else it read the board,
+   drafted twice privately, submitted one, asked to publish, was parked, and
+   said so without retrying. It also flagged that its own copy was full of
+   placeholders and that the pending publish should be declined rather than
+   approved. Transcript in docs/evidence/.
+4. **Codex**, through the same bridge, twice. Once non-interactively on
+   gpt-5.6-terra, and once from a person's own interactive CLI on
+   gpt-5.6-luna, approving each tool as Codex asked. In the second run, after
+   being parked, Codex called list_posts again and read the board itself
+   rather than believing the tool or its own summary, and found the item still
+   in review. Worth knowing: codex exec defaults to an approval policy of
+   never and refuses MCP calls outright until you pass --approve-for-me.
+5. No agent at all. /selftest.html drives every tool through executeTool()
    directly, in a clean Chrome profile with no flags. 22 of 22.
-4. Chrome's Ask Gemini side panel. It does not call WebMCP tools. Given a room
+6. Chrome's Ask Gemini side panel. It does not call WebMCP tools. Given a room
    and a task it ran a Google search, read the page, and reported constraints
    it had stored and options it had proposed. None of it had happened and the
    activity log stayed empty. Written up in docs/WEBMCP-NOTES.md.
-5. ChatGPT's in-app browser. Site tools there need a paid Work plan I do not
+7. ChatGPT's in-app browser. Site tools there need a paid Work plan I do not
    have, so it is untested. Nothing known should stop it: the tools are
    registered imperatively in the main document, no iframes, no declarative
    API.
 
 Browser: Chrome 151.0.7922.175, against the deployed origin rather than
-localhost. The ablation (docs/EVIDENCE.md) ran the in-page path 28 times per
-arm across six independent runs.
+localhost. The ablation (docs/EVIDENCE.md) ran the in-page path eight times per
+arm, with every transcript committed; thirteen committed trials per arm in
+total across two runs.
+
+No shipping agent product speaks WebMCP itself yet, so paths 3 and 4 reached
+the room through my adapter. That is stated plainly in docs/LIMITS.md rather
+than glossed.
 
 ## Which AI tools have you leveraged
 
 - **Claude Code** for the whole build: engine, Worker, Durable Object, rooms, UI,
   the ablation harness, and the demo film's capture and edit pipeline.
-- **Cloudflare Workers AI** (`@cf/openai/gpt-oss-120b`) as the in-page agent's
-  model, and as the subject of the ablation.
+- **Cloudflare Workers AI** (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`) as the
+  in-page agent's model, and as the subject of the ablation.
+- **ChatGPT** for thinking through the framework framing early on, before any of
+  the tool-source work was written.
+- **Codex** and **Claude Code** as clients rather than as builders: both were
+  attached to a live room over MCP to check that an agent nobody here wrote
+  behaves the way the tool descriptions promise.
 - **Chrome's Ask Gemini** side panel, tested as a WebMCP client. It did not call
   the tools, which changed the architecture: the site hosts its own agent
   because otherwise a visitor with no subscription could not see the loop at all.
@@ -123,6 +151,7 @@ arm across six independent runs.
 ## Still to do before you press Submit
 
 1. The film is on YouTube at https://youtu.be/c9gOER5Djeo and the URL is on
-   the Devpost project. Check it is set to **public**, not unlisted.
+   the Devpost project. Check it is **public or unlisted**, never private: a
+   judge has to be able to open it without being invited.
 2. Rotate the Devpost access token and refresh token that were pasted into the
    chat, since they are now in a session log on disk.
