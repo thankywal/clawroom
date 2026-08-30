@@ -90,6 +90,14 @@ codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
 
 `scripts/clawroom-mcp.mjs` is an MCP server that holds no tools. It opens the room in a real Chrome, lists what the page registered with `getTools()`, and calls it with `executeTool()`. A source somebody approved a minute ago is there without a restart. A commit-tier call parks for a human, because the bridge does not decide, the page does. And the tier engine stays in the one place it can be enforced: if the bridge held the tools, the room would have two enforcement points and one of them would drift.
 
+The same script has an away mode, for work that should carry on without you:
+
+```
+node scripts/clawroom-mcp.mjs "<room link>" --away "draft two options and submit the better one"
+```
+
+Run that on a VM and the room is simply open somewhere else. Its own in-page agent does the task and its report is the room's log plus the list of things waiting on a person. An agent can work all night; it cannot ship anything all night. You wake up to a queue of decisions rather than to a surprise. `docs/AWAY.md` covers all four places an agent can run: your tab, your tab with your model, your machine over MCP, and a machine you are not watching.
+
 Verified two ways against the deployed origin, transcript in `docs/evidence/mcp-bridge-2026-08-30.txt`: the bridge's own client drafting, submitting, asking to publish and being parked with a handle; and a JSON-RPC client over stdio doing `initialize`, `tools/list` (21 tools, with Chrome 151's stringified `inputSchema` parsed back into an object), a `tools/call` that ran a command on the member's sandbox, and an unknown tool name answering `isError`.
 
 ## Bring your own model
@@ -173,6 +181,17 @@ A client that has never seen this code also drove a room. `scripts/foreign-agent
 Chrome's Gemini side panel does not call WebMCP tools. Given a room and a task it ran a Google search, read the page, and reported constraints it had stored and options it had proposed, none of which had happened. ChatGPT's site tools want a paid Work plan. Between them, a visitor with no subscription could not see the thing work at all, which is why the site hosts an agent.
 
 That episode left a mark on the design. Tool chips in the chat panel render from engine events, never from what the model claims. A model that narrates a publish it never called leaves a visibly empty log.
+
+The second finding came from trying to host an away agent properly. This site already runs on Cloudflare and already uses Browser Rendering for `computer_browse`, so a cloud agent should have been a browser in that cloud. `/api/cloudprobe` opens any URL there and reports what the page can see. Against a live room:
+
+```
+"ua":    "Mozilla/5.0 (X11; Linux x86_64) ... HeadlessChrome/128.0.0.0 ..."
+"probe": { "namespace": null, "tools": 0, "keys": [] }
+```
+
+Chrome 128 against an API that landed in 151. Neither `document.modelContext` nor `navigator.modelContext` is there, and no property of `document` matches /model/i, so it is absence rather than a rename or a missing token. A WebMCP page is not automatable by the headless browsers that sites already have, which is a real gap between where this API is and where the tooling around it is. The probe is committed rather than deleted: it will answer yes one day with no edit.
+
+The alternative was to run the tier engine a second time, server side, so a cloud agent could drive a room without a browser. Two enforcement points, one of which drifts, in a project whose whole claim is that the rule holds in one place by construction. So the away agent runs wherever you have a Chrome, and the honest limitation is written down instead.
 
 ## Challenges
 
