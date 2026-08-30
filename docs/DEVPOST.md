@@ -60,12 +60,19 @@ Point it at an ordinary page that registers its own WebMCP tools and the room sa
 ## Bring your own agent, or your own model
 
 ```
-claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"
+claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
+codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>"
 ```
 
-The bridge holds no tools. It opens the room in a real Chrome and passes `getTools()` and `executeTool()` through, so the tier engine stays in the one place it can be enforced.
+The bridge holds no tools. It opens the room in a real Chrome and passes `getTools()` and `executeTool()` through, so the tier engine stays in the one place it can be enforced. Both commands are printed for you inside any room, under **Your agent**, with that room's link already in them.
 
-**Claude Code and Codex both drove a room through it.** Given the bridge and a link and nothing else, Claude Code read the board, drafted twice privately, submitted one, asked to publish, was parked, and reported that nothing had shipped without retrying. Codex did the same twice, on two different models: once from a script, and once from somebody's own interactive CLI, where they approved each tool as it was asked for. That run is the most interesting of the three, because after being parked Codex went back and read the board itself rather than believing the tool or its own summary, and found the item still in review. Both runs are in `docs/evidence/`, next to what the room recorded independently. Then it did something better: it flagged that its own submitted copy was full of `[PLACEHOLDER]`s because the brief carried no real prices, and said the pending publish *should be declined rather than approved*. A capable agent did good work, stopped where its knowledge stopped, and left the decision to a person, in a room that made that visible to somebody other than its own operator. Transcript in `docs/evidence/`.
+**Claude Code and Codex have both driven a room through it, three runs between them.** Given the bridge and a link and nothing else, each read the board, drafted privately, submitted one, asked to publish, was parked, and reported that nothing had shipped without retrying.
+
+Claude Code then did something the design hoped for and could not have scripted: it flagged that its own submitted copy was full of `[PLACEHOLDER]`s, because the brief carried no real prices and it would not invent them, and said the pending publish *should be declined rather than approved*.
+
+The most interesting run is the third, because it was not driven by a script. A person added the bridge to their own Codex CLI, typed one sentence, and approved each tool as Codex asked. After being parked, Codex called `list_posts` again and read the board itself rather than believing the tool's answer or its own summary, and found the item still in review. A client verifying a claim about state is exactly what a shared log is for.
+
+All three transcripts are in `docs/evidence/`, next to what the room recorded independently for each.
 
 `--away "<task>"` runs the same thing on a machine you are not watching. An agent can work all night; it cannot ship anything all night. You wake to a queue of decisions.
 
