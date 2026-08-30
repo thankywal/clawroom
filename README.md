@@ -52,8 +52,9 @@ entirely on the `AbortController` the tools were registered under.
 ## One engine, many rooms
 
 A room is a definition object: who the steward is, what tools each side's agent
-gets, what a work item is, and which call patterns are worth flagging. Four ship
-today and each is one file with no bespoke UI.
+gets, what a work item is, and which call patterns are worth flagging. Five ship
+today and each is one file with no bespoke UI; the fifth was generated from an
+OpenAPI document.
 
 | Room | Steward | The signal that makes it worth watching |
 |---|---|---|
@@ -61,6 +62,7 @@ today and each is one file with no bespoke UI.
 | Classroom | teacher | fourteen agents asked for a hint on question three, that question is not landing |
 | Support desk | support lead | the same diagnostic failed across four tickets, so it is one bug and not four conversations |
 | Shop floor | shop owner | two customers asked for something you do not stock and left |
+| Order desk | desk lead | one agent has called the same tool four times running, something is not working for them |
 
 The support one is the clearest argument for the whole idea. Nobody sees that
 pattern today because each of those conversations happens in a different window.

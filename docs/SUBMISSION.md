@@ -25,9 +25,10 @@ A shared room where each person brings their own AI agent. Every tool call an
 agent makes lands in a visible log, like a commit. The person in charge reads
 the log and never the conversations. Anything irreversible waits for a human.
 
-Four rooms ship, from one engine: a marketing department, a classroom, a
-support desk and a shop floor. Switch between them live and the tool surface
-visibly changes, because a room is a definition object rather than an app.
+Five rooms ship, from one engine: a marketing department, a classroom, a
+support desk, a shop floor, and an order desk that was generated from an
+OpenAPI file. Switch between them live and the tool surface visibly changes,
+because a room is a definition object rather than an app.
 
 The support desk carries the clearest argument. When the same diagnostic fails
 across four different tickets, that is one product bug and not four support
