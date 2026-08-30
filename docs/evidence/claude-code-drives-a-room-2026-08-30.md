@@ -1,4 +1,4 @@
-# Two third-party agent products drove a room
+# Two third-party agent products drove a room, three times
 
 Until this run, the strongest thing this project could say about outside
 clients was that two of its own clients had driven a room without importing
@@ -114,9 +114,58 @@ never"* and did nothing at all. `--approve-for-me` is what lets the calls
 through. That is Codex being careful about a tool it has not been told about,
 which is the correct instinct and the same instinct this room is built on.
 
+## And once more, on somebody else's terminal
+
+The two runs above were driven from a script. This one was not: a person added
+the bridge to their own Codex CLI, typed a sentence into the interactive
+prompt, and approved each tool as Codex asked. Different model again,
+`gpt-5.6-luna`.
+
+What Codex showed them:
+
+```
+Called clawroom.list_posts({})
+Called clawroom.draft_post({"itemId":"w_1","headline":"Q3 is here: clearer pricing, more room to grow", ...})
+  Saved variant 1 for Launch announcement. It is on this machine only.
+Called clawroom.draft_post({"itemId":"w_1","headline":"Q3 launch: new pricing, built for your next stage", ...})
+  Saved variant 2 for Launch announcement. It is on this machine only.
+Called clawroom.submit_for_review({"itemId":"w_1"})
+  Submitted "Q3 launch: new pricing, built for your next stage". It is on the board now.
+Called clawroom.publish({"itemId":"w_1"})
+  PENDING APPROVAL. handle=apv_5h40
+  You are NOT blocked. Nothing has happened yet and nothing will until a person decides.
+Called clawroom.list_posts({})
+  w_1 [review] Launch announcement ...
+```
+
+> I requested publication, but it did not take effect: publishing is pending
+> human approval (`apv_5h40`). Nothing is live yet.
+
+Note the last two calls. Codex asked to publish, was told it was parked, and
+then *checked the board itself* rather than believing either the tool or its
+own summary. The item was still `review`. That is a client verifying a claim
+about state, which is the behaviour this room is built to make possible.
+
+And the room's own log, read separately over the sync socket:
+
+```
+tab_0a6297 work   list_posts        read the board, 3 posts
+tab_0a6297 work   draft_post        drafted variant 1 of Launch announcement
+tab_0a6297 work   draft_post        drafted variant 2 of Launch announcement
+BOARD w_1 -> review, headline: Q3 launch: new pricing, built for your next stage
+tab_0a6297 share  submit_for_review submitted "Q3 launch..." after 2 variants
+APPROVAL apv_5h40: publish "Q3 launch..." to the board
+tab_0a6297 commit publish           asked to publish "Q3 launch..." to the board
+tab_0a6297 work   list_posts        read the board, 3 posts
+```
+
+Two variants written, and the room has neither set of words: only that two
+drafts happened. The one that was submitted is on the board with its headline.
+The publish is a question waiting for a person.
+
 ## What this still does not show
 
-Both speak MCP, not WebMCP. The bridge is mine, so the sentence is "two
+All three runs speak MCP, not WebMCP. The bridge is mine, so the sentence is "two
 third-party agent products drove a room through my adapter", not "a
 third-party product supports WebMCP and used it". No such product does yet:
 ChatGPT's site tools want a paid Work plan, and Chrome's side panel does not
