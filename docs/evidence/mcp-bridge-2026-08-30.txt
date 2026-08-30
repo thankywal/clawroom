@@ -1,0 +1,44 @@
+scripts/clawroom-mcp.mjs, 2026-08-30, against the deployed origin.
+
+The bridge is an MCP server that holds no tools. It opens a room in Chrome,
+lists what the page registered with getTools(), and calls it with
+executeTool(). Two runs below: its own client (--selftest), and a real
+JSON-RPC client speaking to it over stdio the way a coding agent does.
+
+--- run 1: node scripts/clawroom-mcp.mjs "<room link>" --selftest
+
+tools/list returned 21
+  add_tool_source, check_approval, computer_browse, computer_fetch_local,
+  computer_list_files, computer_processes, computer_read_file, computer_restore, ...
+
+list_posts
+  post_1 [open] Launch announcement for blog: Announce the Q3 launch, lead with the pricing change
+  post_2 [open] Pricing explainer for email: Explain the new tiers without sounding defensive
+  post_3 [open] Customer story for social: One paragraph on how Harbour Foods uses it
+
+draft_post
+  Saved variant 1 for Launch announcement. It is on this machine only.
+
+submit_for_review
+  Submitted "Same work, less of your evening" for Launch announcement. It is on the board now, waiting for the manager.
+
+publish
+  PENDING APPROVAL. handle=apv_04v9
+  A human in this room has been asked to approve: "publish ... to blog".
+  You are NOT blocked. Nothing has happened yet and nothing will until a person decides.
+
+check_approval
+  apv_04v9 is still waiting on a human. Nothing has shipped.
+
+--- run 2: a JSON-RPC client over stdio
+
+initialize  -> { name: 'clawroom', version: '1.0.0' }, with instructions
+tools/list  -> 21 tools, and draft_post's inputSchema arrives as an object
+               (the bridge parses Chrome 151's stringified DOMString)
+tools/call  -> computer_run "echo bridge-was-here && python3 -c 'print(6*7)'"
+               exit 0 / bridge-was-here / 42
+tools/call  -> an unknown name answers isError with a note that a room's
+               surface changes when somebody approves a source
+
+The commit-tier call parked from MCP exactly as it does in the browser,
+because the bridge does not decide: the page does.
