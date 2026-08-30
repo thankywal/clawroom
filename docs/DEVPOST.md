@@ -3,7 +3,7 @@ Open it in Chrome and press **Open the demo room**. It puts you in a marketing r
 
 **Film (2:12):** https://youtu.be/Le4gWN3Ahu8
 
-**Also worth a click:** [`/ablate.html`](https://clawroom.thankywal-bkk.workers.dev/ablate.html) removes the enforcement engine and measures what happens. [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html) calls every tool with no agent at all.
+**Also worth a click:** [`/ablate.html`](https://clawroom.thankywal-bkk.workers.dev/ablate.html) removes the enforcement engine and measures what happens. [`/selftest.html`](https://clawroom.thankywal-bkk.workers.dev/selftest.html) calls every tool with no agent at all. And in a room, paste `https://clawroom.thankywal-bkk.workers.dev/api/demo/openapi.json` into Borrowed tools to watch an API become tools that everyone in the room gets at once.
 
 ## Inspiration
 
@@ -17,7 +17,7 @@ ClawRoom is that shape, for agent work.
 
 A shared room where each person brings their own AI agent, and every agent gets a computer of its own. Every tool call an agent makes lands in a visible log, like a commit. The person in charge reads the log and never the conversations. Anything irreversible waits for a human.
 
-Five rooms ship from one engine: a marketing department, a classroom, a support desk, a shop floor, and an order desk that was generated from an OpenAPI file. Switch between them and the tool surface visibly changes, because a room is a definition object rather than an app.
+Five rooms ship from one engine: a marketing department, a classroom, a support desk, a shop floor, and an order desk that was generated from an OpenAPI file. A running room can borrow more tools from any OpenAPI document or MCP server, once a person approves. Switch between them and the tool surface visibly changes, because a room is a definition object rather than an app.
 
 The support desk carries the clearest argument. When the same diagnostic fails across four different tickets, that is one product bug and not four support conversations. Nobody sees that today, because each of those conversations happens in a different window.
 
@@ -61,6 +61,35 @@ The first two lines are what the manager sees. The third is the agent choosing, 
 `docs/COMPUTER.md` has the boundary, including the part that is weaker than a draft in the browser: the sandbox is on Cloudflare, not on the member's laptop. The room cannot read it, the other members cannot, the operator of the site could.
 
 The machine is a real one, not a code runner. An agent can keep a server running in the background (`computer_serve`), read what it shows (`computer_fetch_local`), and choose the moment it goes on the board (`computer_share_page`). It can open a public URL in Cloudflare's Browser Rendering and read the text (`computer_browse`, marked untrusted so the steward's agent knows where the words came from). It can snapshot and restore its workspace. And the person has a console into the same machine through the same `computer_run` tool, so a person and their agent share one computer and one log. The steward gets none of that, because the steward never does the work: they get counts per member, a signal when someone has failed three commands in a row, a button that rotates the invite link and one that deletes the room.
+
+## Tools the room borrowed
+
+A room's own tools ship with the site. A **source** is the second way in: point the room at an OpenAPI document or a remote MCP server and its operations become tools for everyone in the room, tiered by the same three rules. Reads are work, writes are share, and anything that sounds irreversible (`DELETE`, or a name containing publish, pay, refund, cancel, ship, deploy) is commit and waits for a person. `x-clawroom-tier` overrides the guess, and an MCP server's `readOnlyHint` and `destructiveHint` annotations are honoured when it sets them.
+
+What makes this safe to offer is that **`add_tool_source` is itself commit tier**. An agent can propose a source and nothing registers. A person approves, and in that instant the op reaches every browser in the room, every browser remounts, and `document.modelContext` changes for all of them at once. No reload. That is what the API's live surface is for, and it is the reason this belongs in a WebMCP project rather than in a plugin system.
+
+Two URLs to try, both working today:
+
+```
+https://clawroom.thankywal-bkk.workers.dev/api/demo/openapi.json    a fixture with a refund in it
+https://mcp.deepwiki.com/mcp                                        a real third-party MCP server, no key
+```
+
+The Worker fetches and proxies, because a browser cannot read another origin and should not be the thing deciding which hosts are safe to call. Loopback, the private ranges and the cloud metadata address are refused. Nothing is stored server side: the parsed source lives in the room's shared state.
+
+Point a source at an ordinary page that registers its own WebMCP tools and the room says it found them and cannot call them. A tool surface belongs to a document, `getTools({ fromOrigins })` is in the spec but not in Chrome 151, and an agent that wants those tools has to be on that page. Saying so is better than pretending.
+
+## Bring your own model
+
+The site hosts a 70B on Workers AI so a visitor with no subscription can watch the loop run. Under the composer there is a line naming the model in use and a link to change it: any OpenAI-compatible endpoint, with presets for OpenAI, Groq and OpenRouter.
+
+The key stays in your browser, beside your drafts. It rides each request to this site's own `/api/agent`, which forwards it to the endpoint you named and keeps nothing. It never reaches the room, the Durable Object or another member, and no tool in this engine can read it. It is still a key in a browser passing through somebody else's Worker, and `docs/LIMITS.md` says exactly that.
+
+## A door, when the link is not enough
+
+A room starts open: the invite link is the whole gate, which is why the demo is one click. A steward can set the door to ask, and then each arrival waits by name until a person lets them in.
+
+Both halves are real, because one would be theatre. The page shows a waiting screen and takes the tool surface down, so an agent outside the door sees an empty room rather than tools that will be refused. And the Durable Object refuses ops from a socket whose person has not been admitted, which is the half that means it. Opening the door again admits whoever was already knocking.
 
 ## What people and agents can do together that was hard before
 
@@ -148,7 +177,7 @@ Filming the product also surfaced real bugs that reading the code would not have
 
 ## What I know is still weak
 
-`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare rather than on the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate a room's invite now, but a leaked link works until they do. Deleting a room does not destroy its members' sandboxes, because only the browser that minted one can address it. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
+`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare rather than on the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate a room's invite now, but a leaked link works until they do. The door that makes a steward admit each arrival is a social gate, not an identity system: a person turned away can come back under another name with the same link. A borrowed tool's description is written by whoever runs that API, so every borrowed tool is marked untrusted, and the address guard checks names and literals rather than resolving them. Bringing your own model puts your key in a browser and passes it through my Worker, which stores nothing, but that is a claim about code you can read. Deleting a room does not destroy its members' sandboxes, because only the browser that minted one can address it. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
 
 ## Taking it back to the spec
 
@@ -162,4 +191,4 @@ The same comment reports the two implementation lag findings, since a client typ
 
 The approval mechanic wants to be a spec proposal rather than one project's convention: a tier declared on the tool, a resolution that returns a handle instead of blocking, and a standard way to ask whether the handle has settled.
 
-Rooms want to federate. `getTools({ fromOrigins })` already exists, so a room could reach tools a partner site exposes rather than only its own.
+Rooms want to federate properly. Borrowing an API or an MCP server works today, and the piece still missing is the one the spec already names: `getTools({ fromOrigins })`, so a room could reach the tools a partner site registers in its own page rather than only the ones behind an HTTP description.
