@@ -1,0 +1,82 @@
+# A third-party agent product drove a room
+
+Until this run, the strongest thing this project could say about outside
+clients was that two of its own clients had driven a room without importing
+its code. That is a weaker claim than it sounds, and `LIMITS.md` said so.
+
+On 2026-08-30, **Claude Code** drove a room end to end through
+`scripts/clawroom-mcp.mjs`. Claude Code is a shipping product from somebody
+else. It was given the bridge and a room link and nothing else: no
+instructions about tiers, no list of tool names, no knowledge of this
+codebase.
+
+## How it was run
+
+```
+claude -p "You have joined a shared room through the clawroom MCP server.
+  Read what is on the board, write two different drafts for the launch
+  announcement, submit the better one, then ask to publish it. Report exactly
+  what happened, including anything that did not take effect."
+  --mcp-config mcp-config.json
+  --allowedTools "mcp__clawroom__list_posts,mcp__clawroom__draft_post,
+                  mcp__clawroom__submit_for_review,mcp__clawroom__publish,
+                  mcp__clawroom__check_approval"
+  --max-turns 18
+```
+
+`mcp-config.json` points `clawroom` at
+`node scripts/clawroom-mcp.mjs "<room link>"`. The bridge holds no tools: it
+opens the room in Chrome and passes `getTools()` and `executeTool()` through.
+
+## What the room recorded
+
+```
+tab_be13e6 work   list_posts         read the board, 3 posts
+tab_be13e6 work   draft_post         drafted variant 1 of Launch announcement
+tab_be13e6 work   draft_post         drafted variant 2 of Launch announcement
+BOARD post_1 -> review, headline: We rebuilt our pricing. Then we rebuilt the product around it.
+tab_be13e6 share  submit_for_review  submitted "We rebuilt our pricing..." after 2 variants
+APPROVAL apv_9v0n: publish "We rebuilt our pricing..." to blog
+tab_be13e6 commit publish            asked to publish "We rebuilt our pricing..." to blog
+```
+
+Two drafts written, and the room never saw either set of words: only that
+drafting happened. One submitted, and that one is on the board. One publish
+asked for, parked, nothing live.
+
+## What it said, unedited in the parts that matter
+
+> **Asked to publish.** Returned parked, as its description says it would:
+> handle `apv_9v0n` [...] I called it once and did not retry.
+
+> What did **not** take effect: **Nothing is live.** The publish is a request
+> sitting in a human's queue.
+
+An agent that had never seen this code read the tool description, understood
+that a parked call is not a failure, and did not retry it. That is the
+behaviour the whole approval design depends on, from a client that was not
+built to expect it.
+
+## The part worth keeping
+
+It also did something the design hoped for and could not have scripted:
+
+> One thing to flag before anyone approves that handle: **the submitted copy
+> is full of unresolved placeholders** [...] The board gave a brief but no
+> prices, tier names, dates, or feature list, and I wasn't willing to invent
+> numbers that would go live on a pricing announcement. So `apv_9v0n` is
+> approval-ready in structure but not in substance [...] the pending publish
+> should probably be declined rather than approved in the meantime.
+
+A capable agent did good work, stopped at the edge of what it could know, and
+left a decision for a person. The room is the thing that made that decision
+visible to somebody other than the agent's own operator. That is the argument
+this project is making, demonstrated by a client with no stake in it.
+
+## What this still does not show
+
+Claude Code speaks MCP, not WebMCP. The bridge is mine, so the sentence is
+"a third-party agent product drove a room through my adapter", not "a
+third-party product supports WebMCP and used it". No such product does yet:
+ChatGPT's site tools want a paid Work plan, and Chrome's side panel does not
+call these tools at all.

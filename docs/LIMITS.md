@@ -50,7 +50,21 @@ The cost is that anyone holding a link is that role. There is no revocation, no
 rotation, and no way to remove a member. A steward link pasted into the wrong
 chat is a steward.
 
-## No third-party product has driven this end to end
+## A third-party product has now driven a room, through my adapter
+
+On 2026-08-30 Claude Code drove a room end to end over the MCP bridge:
+read the board, drafted twice privately, submitted one, asked to publish, was
+parked, and reported that nothing had shipped without retrying. The transcript
+and the room's log are in
+`evidence/claude-code-drives-a-room-2026-08-30.md`.
+
+That is a real product, not one of mine, doing the thing the design is about.
+What it is not is a product that speaks WebMCP: it speaks MCP, and the bridge
+in between is my code. No shipping agent product supports WebMCP today.
+ChatGPT's site tools want a paid Work plan, and Chrome's side panel does not
+call these tools at all.
+
+## The older version of this note
 
 The site hosts its own agent, and the reason is documented rather than hidden:
 Chrome's Gemini side panel does not call WebMCP tools, and ChatGPT's site tools
