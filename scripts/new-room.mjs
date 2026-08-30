@@ -17,7 +17,6 @@ const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 && args[
 const BASE = opt('base', process.env['CLAWROOM_BASE'] ?? 'https://clawroom.thankywal-bkk.workers.dev')
 const defId = opt('kind', 'campaign')
 const title = opt('title', 'Q3 launch campaign')
-const name = opt('as', 'Codex')
 
 const res = await fetch(`${BASE}/api/rooms`, {
   method: 'POST',
@@ -39,14 +38,17 @@ Room "${title}" (${defId}) is up.
     ${link(room.steward)}
 
   Your agent, the one that does the work:
-    ${link(room.member)}&as=${name}
+    ${link(room.member)}&as=Claude
 
 Open the first one in Chrome and leave it there. That window is where the log
 fills and where the Approve button is. Then point an agent at the second:
 
-  claude mcp add clawroom -- node ${bridge} "${link(room.member)}&as=${name}"
+  claude mcp add clawroom -- node ${bridge} "${link(room.member)}&as=Claude"
 
-  codex mcp add clawroom -- node ${bridge} "${link(room.member)}&as=${name}"
+  codex mcp add clawroom -- node ${bridge} "${link(room.member)}&as=Codex"
+
+The name after as= is what the room calls that agent in the log, so give each
+client its own and you can tell them apart.
 
 Then ask it: "read the board, draft two options for the launch announcement,
 submit the better one, and ask to publish it."

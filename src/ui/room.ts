@@ -140,14 +140,17 @@ function bridgeCommands(): string {
   // and only learns it is the steward when the socket says so, so a steward who
   // opened this panel quickly used to get their own approving link baked in,
   // which is the one link an agent must not have.
-  const url = isSteward
-    ? (invite ? `${invite}&as=Codex` : 'reading the invite link...')
+  // A steward is handing out a seat, so each client gets its own name and the
+  // log says which one did the work. A member is lending their own seat to an
+  // agent, so it keeps their name: the work is still theirs.
+  const seat = (client: string) => isSteward
+    ? (invite ? `${invite}&as=${client}` : 'reading the invite link...')
     : `${location.origin}${location.pathname}${location.search}`
   return [
     'git clone https://github.com/thankywal/clawroom && cd clawroom && npm i',
     '',
-    `claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "${url}"`,
-    `codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "${url}"`,
+    `claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "${seat('Claude')}"`,
+    `codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "${seat('Codex')}"`,
     '',
     'Then ask it: read the board, draft two options, submit the better one,',
     'and ask to publish it.',
@@ -324,6 +327,9 @@ function render(): void {
               <button class="ghost small" id="bridgecopy">Copy</button>
               <a class="ghost small" href="https://github.com/thankywal/clawroom#bring-your-own-agent-over-mcp" target="_blank" rel="noreferrer">What this is</a>
             </div>
+            <p class="empty">${isSteward
+              ? 'The name after <code>as=</code> is what this room calls that agent in the log. Change it to anything.'
+              : 'Your agent joins under your name, because the work is still yours.'}</p>
             <p class="empty">Codex asks to allow each tool the first time. Non-interactively,
               <code>codex exec</code> refuses MCP calls until you add <code>--approve-for-me</code>.</p>
           </div>` : ''}
