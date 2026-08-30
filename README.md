@@ -152,8 +152,10 @@ an agent can run, including the measured reason it cannot be Cloudflare Browser
 Rendering: that browser is Chrome 128 and WebMCP arrived in 151, so
 `document.modelContext` is not there at all. `/api/cloudprobe` measures it.
 
-Transcripts of both a stdio JSON-RPC client and the bridge's own end-to-end run
-are in `docs/evidence/mcp-bridge-2026-08-30.txt`.
+**Claude Code and Codex have both driven a room through it**, each given nothing
+but the bridge and a link: read the board, draft privately, submit, ask to
+publish, get parked, and report that nothing shipped. Transcripts and the room's
+own recorded log are in `docs/evidence/`.
 
 ## Bring your own model
 

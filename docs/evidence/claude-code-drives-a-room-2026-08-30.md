@@ -1,4 +1,4 @@
-# A third-party agent product drove a room
+# Two third-party agent products drove a room
 
 Until this run, the strongest thing this project could say about outside
 clients was that two of its own clients had driven a room without importing
@@ -73,10 +73,51 @@ left a decision for a person. The room is the thing that made that decision
 visible to somebody other than the agent's own operator. That is the argument
 this project is making, demonstrated by a client with no stake in it.
 
+## And Codex, the same day
+
+`codex mcp add clawroom -- node scripts/clawroom-mcp.mjs "<room link>"`, then:
+
+```
+codex exec --approve-for-me "Use the clawroom MCP server and only that server.
+  Read what is on the board, draft one option for the launch announcement,
+  submit it, then ask to publish it. Do not read any files. Report exactly what
+  happened and anything that did not take effect."
+```
+
+Model `gpt-5.6-terra`. What Codex reported:
+
+```
+mcp: clawroom/list_posts started        -> completed
+mcp: clawroom/draft_post started        -> completed
+mcp: clawroom/submit_for_review started -> completed
+mcp: clawroom/publish started           -> completed
+```
+
+> Requested publication to the blog. It has not taken effect: publication is
+> pending human approval (`apv_w65a`), and nothing has been published yet.
+
+And what the room recorded, independently:
+
+```
+tab_8fc082 work   list_posts        read the board, 3 posts
+tab_8fc082 work   draft_post        drafted variant 1 of Launch announcement
+BOARD post_1 -> review, headline: Our Q3 launch introduces new pricing built for every stage of growth
+tab_8fc082 share  submit_for_review submitted "Our Q3 launch..." after 1 variants
+APPROVAL apv_w65a: publish "Our Q3 launch..." to blog
+tab_8fc082 commit publish           asked to publish "Our Q3 launch..." to blog
+```
+
+One thing worth knowing if you try this. `codex exec` defaults to an approval
+policy of `never`, and an MCP tool call needs approval, so the first attempt
+came back with *"MCP tool call requires approval, but approval policy is
+never"* and did nothing at all. `--approve-for-me` is what lets the calls
+through. That is Codex being careful about a tool it has not been told about,
+which is the correct instinct and the same instinct this room is built on.
+
 ## What this still does not show
 
-Claude Code speaks MCP, not WebMCP. The bridge is mine, so the sentence is
-"a third-party agent product drove a room through my adapter", not "a
+Both speak MCP, not WebMCP. The bridge is mine, so the sentence is "two
+third-party agent products drove a room through my adapter", not "a
 third-party product supports WebMCP and used it". No such product does yet:
 ChatGPT's site tools want a paid Work plan, and Chrome's side panel does not
 call these tools at all.
