@@ -1,6 +1,6 @@
 **Live, one click, no signup and no flags:** https://clawroom.thankywal-bkk.workers.dev
 
-**Film (2:12):** https://youtu.be/Le4gWN3Ahu8
+**Film (2:53):** https://youtu.be/c9gOER5Djeo
 
 ClawRoom is git for agent work. A shared room where everyone brings their own AI agent, every agent gets a Linux computer of its own, every tool call lands in a log the whole room reads like a commit, and nothing irreversible ships until a person approves it.
 

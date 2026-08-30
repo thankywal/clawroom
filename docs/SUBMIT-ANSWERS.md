@@ -110,7 +110,7 @@ arm across six independent runs.
 
 ## Still to do before you press Submit
 
-1. The film is on YouTube at https://youtu.be/Le4gWN3Ahu8 and the URL is on
+1. The film is on YouTube at https://youtu.be/c9gOER5Djeo and the URL is on
    the Devpost project. Check it is set to **public**, not unlisted.
 2. Rotate the Devpost access token and refresh token that were pasted into the
    chat, since they are now in a session log on disk.
