@@ -58,11 +58,22 @@ function allowedUrl(raw: string): URL | null {
  * other address goes out through fetch as normal.
  */
 async function fetchAny(target: string, init: RequestInit, self: string): Promise<Response> {
-  const u = new URL(target)
-  if (u.origin === self && u.pathname.startsWith('/api/demo')) {
-    return await handleDemoApi(new Request(target, init), u.pathname.slice('/api/demo'.length))
+  let at = target
+  for (let hop = 0; hop < 4; hop++) {
+    const u = allowedUrl(at)
+    // Every hop is checked, not just the first. A public URL that redirects
+    // into a private address is the oldest way around a guard like this one.
+    if (!u) throw new Error('that address cannot be reached from here')
+    if (u.origin === self && u.pathname.startsWith('/api/demo')) {
+      return await handleDemoApi(new Request(u.toString(), init), u.pathname.slice('/api/demo'.length))
+    }
+    const res = await fetch(u.toString(), { ...init, redirect: 'manual' })
+    if (res.status < 300 || res.status > 399) return res
+    const next = res.headers.get('location')
+    if (!next) return res
+    at = new URL(next, u).toString()
   }
-  return await fetch(target, init)
+  throw new Error('too many redirects')
 }
 
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {

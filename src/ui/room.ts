@@ -123,10 +123,49 @@ function logRow(e: Event): string {
   </div>`
 }
 
+/** What a person is actually being asked to say yes to.
+ *
+ *  This used to be the one-line describe and nothing else, which meant the
+ *  steward approved a title. The artefact was in shared state the whole time,
+ *  two clicks from the board: submitted copy on the item, arguments on the
+ *  approval. "The room sees the work, not the people" is about not reading
+ *  somebody's conversation. It was never about hiding the thing being shipped,
+ *  and an approver who cannot read it is a rubber stamp. */
+function approvalBody(a: Approval): string {
+  const item = a.item ? store.state.items.find(i => i.id === a.item) : undefined
+  const body = (item?.body ?? {}) as Record<string, unknown>
+  const parts: { label: string; text: string }[] = []
+
+  const submitted = typeof body['submitted'] === 'string' ? body['submitted'] : ''
+  const headline = typeof body['headline'] === 'string' ? body['headline'] : ''
+  if (headline) parts.push({ label: item?.title ?? 'Headline', text: headline })
+  if (submitted && submitted !== headline) parts.push({ label: 'The words', text: submitted })
+  for (const key of ['reply', 'answer', 'picked', 'brief']) {
+    const v = body[key]
+    if (typeof v === 'string' && v && !parts.some(p => p.text === v)) {
+      parts.push({ label: key === 'brief' ? 'The brief' : key, text: v })
+    }
+  }
+
+  // Whatever the tool was called with, minus the plumbing. A borrowed refund
+  // has its amount and reason here and nowhere else.
+  const args = Object.entries(a.args ?? {}).filter(([k]) => k !== 'itemId' && k !== 'which')
+  const argLine = args.length
+    ? args.map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+    : ''
+
+  if (!parts.length && !argLine) return ''
+  return `<div class="asked">
+    ${parts.map(p => `<div class="askedbit"><span class="asklabel">${esc(p.label)}</span>${esc(p.text.slice(0, 700))}</div>`).join('')}
+    ${argLine ? `<div class="askedbit"><span class="asklabel">arguments</span><code>${esc(argLine.slice(0, 400))}</code></div>` : ''}
+  </div>`
+}
+
 function approvalRow(a: Approval): string {
   const who = nameOf(a.requestedBy)
   return `<div class="ask">
     <h3><span style="color:${who.colour}">${esc(who.name)}</span> asked to ${esc(a.describe)}</h3>
+    ${approvalBody(a)}
     <p class="dim">${a.id}, waiting since ${new Date(a.at).toLocaleTimeString()}</p>
     ${isSteward ? `<div class="btns">
       <button class="primary" data-ok="${a.id}">Approve</button>
@@ -220,25 +259,6 @@ function render(): void {
 
     ${fired.length ? `<div class="banner warn">${fired.map(f => `<b>${esc(f.label)}.</b> ${esc(f.text)}`).join('<br>')}</div>` : ''}
 
-    ${isSteward ? `<section class="zone" style="margin-bottom:14px">
-      <div class="zhead">
-        <h2>Who gets in</h2>
-        <span class="note">${door === 'ask' ? 'you admit each arrival' : 'anyone with the invite link'}</span>
-      </div>
-      <div class="zbody">
-        ${knocking.length ? `<table class="usage"><thead><tr><th>At the door</th><th>Since</th><th></th></tr></thead>
-          <tbody>${knocking.map(k => `<tr>
-            <td>${esc(k.name)}</td>
-            <td>${new Date(k.at).toLocaleTimeString()}</td>
-            <td><button class="ghost small" data-admit="${esc(k.id)}">Let them in</button>
-                <button class="ghost small danger" data-refuse="${esc(k.id)}">Turn away</button></td>
-          </tr>`).join('')}</tbody></table>` : `<p class="empty">${door === 'ask' ? 'Nobody is waiting.' : 'The invite link is the whole gate. Anyone holding it walks in.'}</p>`}
-        <div class="btns">
-          <button class="ghost small" id="doortoggle">${door === 'ask' ? 'Let anyone with the link in' : 'Ask me before letting anyone in'}</button>
-        </div>
-      </div>
-    </section>` : ''}
-
     ${s.approvals.map(approvalRow).join('')}
 
     ${isSteward && computerUsage(s).length ? `<section class="zone" style="margin-bottom:14px">
@@ -303,16 +323,23 @@ function render(): void {
               <button class="ghost" id="runcmd" ${ttyBusy ? 'disabled' : ''}>${ttyBusy ? 'Running' : 'Run'}</button>
             </div>
           </div>
-        </section>` : ''}
+    </section>` : ''}
       </div>
 
-      <section class="zone">
-        <div class="zhead"><h2>${esc(roomTitle || def.title)}</h2><span class="note">everyone in the room sees this</span></div>
-        <div class="zbody">
-          <table><thead><tr><th>Item</th><th>Brief</th><th>State</th><th>Owner</th></tr></thead>
-          <tbody>${s.items.map(boardRow).join('')}</tbody></table>
-        </div>
-      </section>
+      <div>
+        <section class="zone">
+          <div class="zhead"><h2>${esc(roomTitle || def.title)}</h2><span class="note">everyone in the room sees this</span></div>
+          <div class="zbody">
+            <table><thead><tr><th>Item</th><th>Brief</th><th>State</th><th>Owner</th></tr></thead>
+            <tbody>${s.items.map(boardRow).join('')}</tbody></table>
+          </div>
+        </section>
+
+        <section class="zone" style="margin-top:14px">
+          <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
+          <div id="feed">${s.events.length ? s.events.slice(-60).map(logRow).join('') : '<p class="empty">Nothing yet. It fills as people\'s agents work.</p>'}</div>
+        </section>
+      </div>
     </div>
 
     <section class="zone" style="margin-top:14px">
@@ -353,10 +380,26 @@ function render(): void {
       </div>
     </section>
 
-    <section class="zone" style="margin-top:14px">
-      <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
-      <div id="feed">${s.events.length ? s.events.slice(-60).map(logRow).join('') : '<p class="empty">Nothing yet.</p>'}</div>
-    </section>`
+    ${isSteward ? `<section class="zone" style="margin-top:14px">
+      <div class="zhead">
+        <h2>Who gets in</h2>
+        <span class="note">${door === 'ask' ? 'you admit each arrival' : 'anyone with the invite link'}</span>
+      </div>
+      <div class="zbody">
+        ${knocking.length ? `<table class="usage"><thead><tr><th>At the door</th><th>Since</th><th></th></tr></thead>
+          <tbody>${knocking.map(k => `<tr>
+            <td>${esc(k.name)}</td>
+            <td>${new Date(k.at).toLocaleTimeString()}</td>
+            <td><button class="ghost small" data-admit="${esc(k.id)}">Let them in</button>
+                <button class="ghost small danger" data-refuse="${esc(k.id)}">Turn away</button></td>
+          </tr>`).join('')}</tbody></table>` : `<p class="empty">${door === 'ask' ? 'Nobody is waiting.' : 'The invite link is the whole gate. Anyone holding it walks in.'}</p>`}
+        <div class="btns">
+          <button class="ghost small" id="doortoggle">${door === 'ask' ? 'Let anyone with the link in' : 'Ask me before letting anyone in'}</button>
+        </div>
+      </div>
+    </section>` : ''}
+
+`
 
   const feed = el('feed')
   if (feed) feed.scrollTop = feed.scrollHeight

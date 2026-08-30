@@ -114,6 +114,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
   return [
     {
       name: 'computer_run',
+      title: 'Run a command on your computer',
       description:
         'Run a shell command on your own computer, a Linux machine that is yours for this ' +
         'room. Python and Node are installed. Files live under /workspace and persist. ' +
@@ -140,6 +141,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_write_file',
+      title: 'Write a file on your computer',
       description:
         'Write a file on your own computer, under /workspace. Stays there. The room is told ' +
         'the file name and size, never the contents.',
@@ -161,6 +163,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_read_file',
+      title: 'Read a file on your computer',
       description: 'Read a file from your own computer. The room is told that you read it, not what it said.',
       tier: 'work',
       readOnly: true,
@@ -177,6 +180,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_list_files',
+      title: 'List files on your computer',
       description: 'List the files on your own computer under /workspace, or under a path you give.',
       tier: 'work',
       readOnly: true,
@@ -197,6 +201,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_serve',
+      title: 'Start a server on your computer',
       description:
         'Start a long-running program on your own computer, for example a web server, and keep it ' +
         'running in the background. Give the port it will listen on and the tool waits for it to come ' +
@@ -226,6 +231,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_processes',
+      title: 'Background programs on your computer',
       description: 'List the programs running in the background on your own computer, and stop one by id.',
       tier: 'work',
       inputSchema: {
@@ -250,6 +256,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_fetch_local',
+      title: 'Check what your server is showing',
       description:
         'Fetch a page from a server running on your own computer, by port and path. You see the ' +
         'response; the room only learns that you checked.',
@@ -268,6 +275,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_share_page',
+      title: 'Share a page with the room',
       description:
         'Put what a server on your computer is showing onto the shared board, so everyone in the room ' +
         'can see the page. This is the moment it stops being private, so share only what you mean.',
@@ -300,6 +308,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_browse',
+      title: 'Read a public web page',
       description:
         'Open a public web page in a real browser and read its text. You get the page; the room only ' +
         'learns that you read a page, not which one or what it said.',
@@ -323,6 +332,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_snapshot',
+      title: 'Snapshot your workspace',
       description:
         'Save a snapshot of everything under /workspace on your own computer, so you can get back to ' +
         'it later with computer_restore. Stays on your computer.',
@@ -339,6 +349,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_restore',
+      title: 'Restore your workspace',
       description:
         'Put /workspace on your own computer back to a snapshot. Everything currently there is ' +
         'replaced. Call with no name to list the snapshots you have.',
@@ -360,6 +371,7 @@ export function computerTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'computer_share_file',
+      title: 'Share a file with the room',
       description:
         'Put a file from your computer on the shared board, where everyone in the room can read ' +
         'it. This is the moment the file stops being private, so share only the one you mean.',

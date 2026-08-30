@@ -40,14 +40,39 @@ export interface ToolHost {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
+/** name_like_this -> Name like this. Every tool gets a readable title, because
+ *  a picker showing bare snake_case is a picker nobody can read. */
+function prettify(name: string): string {
+  const words = name.replace(/_/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+interface Mounted { ac: AbortController; sig: string }
+
 export function createToolHost(o: { onCall?: (r: CallReport) => void } = {}): ToolHost {
   const mc = resolveModelContext()
-  let ac: AbortController | null = null
-  let mounted: string[] = []
+  // One AbortController per tool rather than one for the surface. Approving a
+  // source used to tear the whole surface down and rebuild it, which left a
+  // window where getTools() returned nothing at all: exactly the wrong thing
+  // for the one feature whose point is that the surface changes live. Now four
+  // new tools mean four registrations and nothing else moves.
+  const mounted = new Map<string, Mounted>()
+  let lastStore: RoomStore | null = null
 
   const names = async (): Promise<string[]> => {
     if (!mc) return []
     try { return (await mc.getTools()).map(t => t.name) } catch { return [] }
+  }
+
+  /** Abort is confirmed to remove tools on Chrome 151, but nothing says it is
+   *  synchronous, and registering a name back into a half torn down surface
+   *  would be a quiet and miserable bug. So wait for the names to go. */
+  const settle = async (going: Set<string>): Promise<void> => {
+    for (let i = 0; i < 25; i++) {
+      const live = await names()
+      if (!live.some(n => going.has(n))) return
+      await sleep(20)
+    }
   }
 
   const toWebMcp = (
@@ -57,18 +82,17 @@ export function createToolHost(o: { onCall?: (r: CallReport) => void } = {}): To
     isSteward: boolean,
   ): ToolDefinition => ({
     name: tool.name,
+    title: tool.title ?? prettify(tool.name),
     description: tool.tier === 'commit' ? tool.description + COMMIT_NOTE : tool.description,
     inputSchema: tool.inputSchema,
-    // exactOptionalPropertyTypes means an explicit undefined is a type error,
-    // so build the annotations by spreading only what is actually set.
-    ...(tool.readOnly !== undefined || tool.untrusted !== undefined
-      ? {
-          annotations: {
-            ...(tool.readOnly !== undefined ? { readOnlyHint: tool.readOnly } : {}),
-            ...(tool.untrusted !== undefined ? { untrustedContentHint: tool.untrusted } : {}),
-          },
-        }
-      : {}),
+    // Always sent, both of them. Leaving the object off for a tool that
+    // happens not to set readOnly told a model nothing about computer_run or
+    // publish, which are the two it most needs to be careful with. An absent
+    // hint is not a safe default; it is a missing one.
+    annotations: {
+      readOnlyHint: tool.readOnly ?? false,
+      untrustedContentHint: tool.untrusted ?? false,
+    },
     execute: async (args: Record<string, unknown>) => {
       const outcome = await runRoomTool({ store, tool, me, isSteward, args: args ?? {} })
       o.onCall?.({ name: tool.name, tier: tool.tier, outcome })
@@ -83,37 +107,54 @@ export function createToolHost(o: { onCall?: (r: CallReport) => void } = {}): To
     available: mc !== null,
 
     async mount(def, { store, me, isSteward }) {
-      await host.unmount()
       if (!mc) return []
 
       const tools = isSteward
         ? [...def.stewardTools, ...builtinStewardTools(store)]
         : [...def.memberTools, ...builtinMemberTools(store)]
 
-      const wanted = tools.map(t => t.name)
-      const dupes = [...new Set(wanted.filter((n, i) => wanted.indexOf(n) !== i))]
+      const names = tools.map(t => t.name)
+      const dupes = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))]
       if (dupes.length) throw new Error(`Duplicate tool names in room ${def.id}: ${dupes.join(', ')}`)
 
-      ac = new AbortController()
-      for (const tool of tools) {
-        await mc.registerTool(toWebMcp(tool, store, me, isSteward), { signal: ac.signal })
+      // A tool is the same tool if nothing a caller can see has changed and
+      // the closure it carries still points at the same room. The store is in
+      // the signature because every run() closes over it, so a store swap has
+      // to re-register even when the description is identical.
+      if (lastStore !== store) {
+        await host.unmount()
+        lastStore = store
       }
-      mounted = wanted
-      return wanted
+      const signature = (t: RoomTool): string =>
+        `${t.tier}|${t.title ?? ''}|${t.description}|${JSON.stringify(t.inputSchema)}|${t.readOnly}|${t.untrusted}|${me.id}|${isSteward}`
+
+      const wanted = new Map(tools.map(t => [t.name, t]))
+      const dying: string[] = []
+      for (const [name, m] of [...mounted]) {
+        const t = wanted.get(name)
+        if (t && signature(t) === m.sig) continue
+        m.ac.abort()
+        mounted.delete(name)
+        dying.push(name)
+      }
+      if (dying.length) await settle(new Set(dying))
+
+      for (const [name, tool] of wanted) {
+        if (mounted.has(name)) continue
+        const ac = new AbortController()
+        await mc.registerTool(toWebMcp(tool, store, me, isSteward), { signal: ac.signal })
+        mounted.set(name, { ac, sig: signature(tool) })
+      }
+      return [...mounted.keys()]
     },
 
     async unmount() {
-      if (!ac) return
-      ac.abort()
-      ac = null
-      const going = new Set(mounted)
-      mounted = []
-      // Wait for the surface to settle rather than trusting abort to be sync.
-      for (let i = 0; i < 25; i++) {
-        const live = await names()
-        if (!live.some(n => going.has(n))) return
-        await sleep(20)
-      }
+      if (!mounted.size) return
+      const going = new Set(mounted.keys())
+      for (const m of mounted.values()) m.ac.abort()
+      mounted.clear()
+      lastStore = null
+      await settle(going)
     },
 
     async handle(name) {

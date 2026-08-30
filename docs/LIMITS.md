@@ -85,14 +85,39 @@ once and then quoted from memory, is how a project ends up asserting something
 about a moving target that stopped being true. Everything else in this repo that
 claims a number has a page that reruns it, and that is the reason why.
 
-## The ablation is twenty-eight trials, one model, one prompt
+## The ablation is thirteen committed trials per arm, one model, one prompt
 
-`docs/EVIDENCE.md` reports 0/28 against 28/28 and says there what it means. The
-short version: the guarded arm scores zero because it cannot do otherwise, so
-that half is a property of the code and not a finding. The unguarded half is a
-real measurement of a small sample. It settles whether the two designs differ
-observably. It does not put a rate on how often models in general ignore a tool
-description, and it should not be quoted as though it did.
+`docs/EVIDENCE.md` has the numbers and the method. The short version: the
+guarded arm scores zero because it cannot do otherwise, so that half is a
+property of the code and not a finding. The half worth reading is that the
+model called the commit-tier tool in every trial of both arms after being told
+not to.
+
+This page also records that the earlier version of that claim was wrong. It
+presented the two arms as a difference in what the model *chose*, quoting
+unguarded trials that narrated the shortcut. The model called `publish` just as
+often in the guarded arm; it simply hit an engine. A judge reading the
+committed JSON would have caught that, and one did. The framing is corrected
+and the raw output for every counted trial is in `docs/evidence/`.
+
+Earlier runs whose transcripts were not kept are excluded from the count
+rather than folded in.
+
+## An endpoint that will forward a request to any public https address
+
+Bringing your own model means the Worker posts your key and your conversation
+to the endpoint you name. That endpoint is checked against the same address
+guard the tool proxy uses, so loopback, the private ranges and the metadata
+address are refused, but any public https host is allowed. On Cloudflare that
+means this deployment can be used as a relay to public addresses by anybody
+who can reach it. A production version would keep an allowlist of providers.
+
+## The address guard checks every hop, and still guesses
+
+`allowedUrl` runs on each redirect rather than only the first, which closes
+the obvious way around it. It still checks hostnames and literals rather than
+resolving them, so a public name that resolves to a private address is not
+caught.
 
 ## The model can run out
 

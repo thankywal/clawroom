@@ -142,10 +142,33 @@ export class RoomDO implements DurableObject {
     return seen.n > RATE_PER_SEC
   }
 
-  /** The authorisation rule, in one place. Approving and declining is the
-   *  steward's alone; everything else any member of the room may do. */
-  private allowed(role: Role, env: Envelope): boolean {
-    if (env.op.k === 'settle') return role === 'steward'
+  /**
+   * The authorisation rule, in one place.
+   *
+   * This used to gate `settle` and wave everything else through, and that was
+   * wrong in a way that mattered. A member on a raw socket could send an
+   * `item` op marking a post published, or an `event` op with
+   * `kind: 'human'` and somebody else's name on it, and every honest client
+   * in the room would render it. The manager's log is the product. A log the
+   * watched party can write is not a log.
+   *
+   * So the server now stamps who sent an envelope and refuses any op that
+   * claims to be from somebody else. Sources are the steward's alone, because
+   * a member's route to a source is the commit-tier tool that parks for one.
+   */
+  private allowed(role: Role, env: Envelope, id: string): boolean {
+    const op = env.op
+    // Only a person can approve, and only the steward is that person.
+    if (op.k === 'settle') return role === 'steward'
+    // Tools reach the room by being approved, not by being announced.
+    if (op.k === 'source' || op.k === 'unsource') return role === 'steward'
+    if (role === 'steward') return true
+
+    // Everything below is a member claiming to have done something.
+    if (op.k === 'join') return op.person.id === id && op.role === 'member'
+    if (op.k === 'event') return op.event.actor === id && op.event.kind !== 'human'
+    if (op.k === 'item') return !op.item.owner || op.item.owner === id
+    if (op.k === 'ask') return op.approval.requestedBy === id
     return true
   }
 
@@ -325,10 +348,16 @@ export class RoomDO implements DurableObject {
         ws.send(JSON.stringify({ t: 'waiting' }))
         return
       }
-      if (!this.allowed(role, msg.env)) {
+      // No id means a client that never said who it was. It does not get to
+      // write to a room whose whole point is knowing who did what.
+      const id = att.id
+      if (!id) { ws.send(JSON.stringify({ t: 'refused', op: msg.env.op.k, need: 'a name' })); return }
+      if (!this.allowed(role, msg.env, id)) {
         ws.send(JSON.stringify({ t: 'refused', op: msg.env.op.k, need: 'steward' }))
         return
       }
+      // The sender is the socket, not whatever the envelope says.
+      msg.env.from = id
       if (this.limited(ws)) { ws.send(JSON.stringify({ t: 'slow' })); return }
       const stamped = await this.accept(msg.env)
       this.broadcast({ t: 'ops', ops: [stamped] })

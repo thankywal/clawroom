@@ -102,6 +102,10 @@ export function sourceTools(store: RoomStore): RoomTool[] {
       const name = sourceToolName(source, t)
       out.push({
         name,
+        // Prettified from the operation, not from the prefixed tool name, so a
+        // picker reads "Refund order" under the source rather than
+        // "Harbour foods order refund order".
+        title: t.name.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) + ` (${source.name})`,
         description: `${t.description} (from ${source.name}, added to this room by a person)`,
         tier: t.tier,
         ...(t.tier === 'work' ? { readOnly: true, untrusted: true } : { untrusted: true }),
@@ -156,6 +160,7 @@ export function sourceAdminTools(store: RoomStore): RoomTool[] {
   return [
     {
       name: 'list_tool_sources',
+      title: 'Where this room borrowed tools',
       description:
         'List the places this room has borrowed tools from, and how many tools each one brought.',
       tier: 'work',
@@ -174,6 +179,7 @@ export function sourceAdminTools(store: RoomStore): RoomTool[] {
     },
     {
       name: 'add_tool_source',
+      title: 'Propose tools from an API',
       description:
         'Propose that this room borrow the tools behind a URL: an OpenAPI document, or a remote ' +
         'MCP server. Nothing is registered by this call. A person in this room has to approve it, ' +

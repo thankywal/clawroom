@@ -196,3 +196,11 @@ pre.tty b { color: #9ad1ff; font-weight: 600; }
 button.linky { background: none; border: 0; color: #6fbfb5; cursor: pointer; font: inherit; padding: 0 0 0 6px; text-decoration: underline; }
 .modelform { border-top: 1px solid #1e2726; margin-top: 10px; padding-top: 10px; display: grid; gap: 8px; }
 .modelform select, .modelform input { width: 100%; }
+
+/* What is actually being approved. The approver reads the artefact, never the
+   conversation that produced it. */
+.asked { border-left: 2px solid #2f4a4a; margin: 10px 0 12px; padding: 2px 0 2px 12px; }
+.askedbit { margin: 6px 0; color: #d3dbd9; font-size: 13.5px; line-height: 1.55; }
+.askedbit code { font-size: 12.5px; color: #9fd6cf; }
+.asklabel { display: block; color: #7f9a96; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .06em; text-transform: uppercase; }

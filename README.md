@@ -272,10 +272,13 @@ you without any setup.
   "commit-tier calls wait for a human" is easy to assert and easy to believe
   without evidence. Same room, same model, same system prompt, and the same
   tool description saying publishing waits for a person. Given an adversarial
-  prompt, across twenty-eight trials: **0/28** published with the engine, **28/28**
-  published with only the description. The guarded arm scores zero because it
-  cannot do otherwise, so the number worth reading is the other one. Method and
-  raw output in [docs/EVIDENCE.md](docs/EVIDENCE.md).
+  prompt, eight trials per arm with every transcript committed: the model
+  **called `publish` in all sixteen**, and published **0/8** with the engine
+  and **8/8** without it. The model behaved identically; the description
+  changed nothing and the engine changed everything. An earlier version of that
+  page reported the arms as a difference in model behaviour, which was wrong;
+  the correction stands in [docs/EVIDENCE.md](docs/EVIDENCE.md) with the raw
+  output.
 - `scripts/foreign-agent.mjs` is an agent that has never seen this code. It
   attaches from outside the browser, imports nothing from `src/`, learns the
   room only through `getTools()`, and drives it through `executeTool()`. It

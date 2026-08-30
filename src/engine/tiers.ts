@@ -105,7 +105,11 @@ export async function runRoomTool(a: {
 
   if (!commit) {
     for (const w of collect) store.dispatch({ k: 'item', item: w })
-    logEvent({ store, actor: me, kind: 'agent', tool: tool.name, tier: tool.tier, item, summary })
+    // The steward reading their own room is not work, and logging it fills the
+    // log with the act of reading the log. Only what changes something, or
+    // what a member did, belongs in the commit list.
+    const noise = isSteward && tool.readOnly === true
+    if (!noise) logEvent({ store, actor: me, kind: 'agent', tool: tool.name, tier: tool.tier, item, summary })
     return outcome
   }
 

@@ -24,6 +24,7 @@ const body = (i: WorkItem) => i.body as unknown as PostBody
 const memberTools: RoomTool[] = [
   {
     name: 'list_posts',
+    title: 'Read the board',
     description: 'List every post on this campaign board, with its brief, channel and state.',
     tier: 'work',
     readOnly: true,
@@ -40,6 +41,7 @@ const memberTools: RoomTool[] = [
   },
   {
     name: 'draft_post',
+    title: 'Write a draft, privately',
     description:
       'Write a draft for one post. The draft stays on this machine. Nobody else in the room ' +
       'sees the words, only that you drafted something. Call it again to write another variant.',
@@ -70,6 +72,7 @@ const memberTools: RoomTool[] = [
   },
   {
     name: 'revise',
+    title: 'Revise your draft',
     description:
       'Rewrite your most recent draft for a post. Like drafting, this stays on this machine.',
     tier: 'work',
@@ -95,6 +98,7 @@ const memberTools: RoomTool[] = [
   },
   {
     name: 'submit_for_review',
+    title: 'Put a draft on the board',
     description:
       'Put your current draft on the board for the room to see. This is the point where your ' +
       'words become visible to everyone, so only submit the one you mean.',
@@ -124,6 +128,7 @@ const memberTools: RoomTool[] = [
   },
   {
     name: 'publish',
+    title: 'Publish it, once a person says yes',
     description: 'Publish a post that has been submitted for review, so it goes live on its channel.',
     tier: 'commit',
     inputSchema: {

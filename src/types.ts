@@ -20,6 +20,9 @@ export interface Person {
 /** What one participant's agent may do, and what it costs to do it. */
 export interface RoomTool {
   name: string
+  /** What a person should see in a tool picker. Falls back to the name,
+   *  prettified, so no tool ever shows up as bare snake_case. */
+  title?: string
   /** Written for the agent. This is the only place it learns the room's rules. */
   description: string
   tier: Tier

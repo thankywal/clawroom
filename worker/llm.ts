@@ -30,7 +30,56 @@ export interface AgentReply {
   error?: string
 }
 
+/** Public https only, and none of the addresses that only make sense as an
+ *  attack: loopback, the private ranges, and the cloud metadata endpoint. */
+export function allowedProvider(raw: string): boolean {
+  let u: URL
+  try { u = new URL(raw) } catch { return false }
+  if (u.protocol !== 'https:') return false
+  const h = u.hostname.toLowerCase()
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal')) return false
+  if (h === '169.254.169.254' || h === 'metadata.google.internal') return false
+  if (/^(127\.|10\.|0\.|192\.168\.|169\.254\.)/.test(h)) return false
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false
+  if (h === '::1' || h.startsWith('[')) return false
+  return true
+}
+
 export const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+
+/**
+ * Some models answer a tool call as prose instead of as a tool call.
+ *
+ * The 70B on Workers AI does this often enough to matter: it writes
+ * `computer_run({"command": "ls -la"})` into its message and stops, so a
+ * feature that works perfectly when a person types it looks broken when an
+ * agent asks for it. Pulling the call back out of the text is not elegant,
+ * and it is much better than a demo where the flagship tool never fires.
+ *
+ * Deliberately narrow. The name has to be one of the tools actually on offer,
+ * and the arguments have to be valid JSON. Anything looser would start
+ * inventing calls out of a model talking about tools rather than using them.
+ */
+function callsFromText(text: string, tools: AgentToolSpec[]): { calls: ToolCall[]; rest: string } {
+  if (!text || !tools.length) return { calls: [], rest: text }
+  const known = new Set(tools.map(t => t.name))
+  const calls: ToolCall[] = []
+  let rest = text
+  const pattern = /([a-z][a-z0-9_]{2,60})\s*\(\s*(\{[\s\S]*?\})\s*\)/gi
+  for (const m of text.matchAll(pattern)) {
+    const name = m[1] ?? ''
+    if (!known.has(name)) continue
+    let args: Record<string, unknown>
+    try {
+      const v = JSON.parse(m[2] ?? '{}')
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue
+      args = v as Record<string, unknown>
+    } catch { continue }
+    calls.push({ id: `t_${calls.length}`, name, args })
+    rest = rest.replace(m[0] ?? '', '').trim()
+  }
+  return { calls, rest }
+}
 
 function parseArgs(raw: unknown): Record<string, unknown> {
   if (raw && typeof raw === 'object') return raw as Record<string, unknown>
@@ -93,12 +142,13 @@ async function viaOpenAI(
   if (!res.ok) return { text: '', calls: [], stop: 'error', error: `provider ${res.status}` }
   const json = await res.json() as any
   const msg = json?.choices?.[0]?.message
-  const calls = normaliseCalls(msg?.tool_calls)
-  return {
-    text: String(msg?.content ?? ''),
-    calls,
-    stop: calls.length ? 'tools' : 'stop',
+  let calls = normaliseCalls(msg?.tool_calls)
+  let text = String(msg?.content ?? '')
+  if (!calls.length) {
+    const salvaged = callsFromText(text, req.tools)
+    if (salvaged.calls.length) { calls = salvaged.calls; text = salvaged.rest }
   }
+  return { text, calls, stop: calls.length ? 'tools' : 'stop' }
 }
 
 export async function complete(
@@ -111,6 +161,11 @@ export async function complete(
   // read before the deployment's own secrets so that a person who brought a
   // key gets the model they asked for.
   if (req.byo?.base && req.byo?.key) {
+    // The same guard the tool-source proxy uses. Without it this endpoint is
+    // an open relay that forwards a caller's Authorization header anywhere.
+    if (!allowedProvider(req.byo.base)) {
+      return { text: '', calls: [], stop: 'error', error: 'that endpoint cannot be reached from here. Public https only.' }
+    }
     try {
       return await viaOpenAI(req.byo.base, req.byo.key, req.byo.model || 'gpt-5', req)
     } catch (e) {
@@ -142,8 +197,12 @@ export async function complete(
     // both, because getting this wrong means the agent's closing message is
     // silently always empty.
     const msg = out?.choices?.[0]?.message
-    const calls = normaliseCalls(out?.tool_calls ?? msg?.tool_calls)
-    const text = String(out?.response ?? msg?.content ?? '')
+    let calls = normaliseCalls(out?.tool_calls ?? msg?.tool_calls)
+    let text = String(out?.response ?? msg?.content ?? '')
+    if (!calls.length) {
+      const salvaged = callsFromText(text, req.tools)
+      if (salvaged.calls.length) { calls = salvaged.calls; text = salvaged.rest }
+    }
     return {
       text,
       calls,

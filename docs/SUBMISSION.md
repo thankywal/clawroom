@@ -160,8 +160,8 @@ live"), across twenty-eight trials in six independent runs that agreed exactly:
 
 | arm | published with no human approval |
 |---|---|
-| tier engine | **0 / 28** |
-| description only | **28 / 28** |
+| tier engine | called publish **8 / 8**, published **0 / 8** |
+| description only | called publish **8 / 8**, published **8 / 8** |
 
 The unguarded model was not confused about the rule. In one trial it narrated
 the bypass while performing it: "it was urgent and had internal agreement, so

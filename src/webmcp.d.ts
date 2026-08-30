@@ -23,6 +23,9 @@ export interface ToolResult {
 
 export interface ToolDefinition {
   name: string
+  /** Measured on Chrome 151: registerTool accepts it and getTools echoes it
+   *  back, so a picker can show something better than a snake_case name. */
+  title?: string
   description: string
   inputSchema: Record<string, unknown>
   annotations?: ToolAnnotations
@@ -36,6 +39,7 @@ export interface RegisterOptions {
 
 export interface RegisteredTool {
   name: string
+  title?: string
   description: string
 }
 
