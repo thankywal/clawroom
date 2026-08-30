@@ -1,5 +1,5 @@
 **Live:** https://clawroom.thankywal-bkk.workers.dev
-Open it in Chrome and press **Open the demo room**. It puts you in a marketing room as the manager and opens a second window as Ella, one of your team, so both halves of the room are in front of you at once. No signup, no flags, no form to fill in. The origin trial token is served in the page.
+Open it in Chrome and press **Open the demo room**. It puts you in a marketing room as the manager and opens a second window as Ella, one of your team, so both halves of the room are in front of you at once. No signup, no flags, no form to fill in. The origin trial token is served in the page. Ask Ella's agent to draft and submit something, then watch your log fill and an approval arrive. Ask it to write and run a Python script too: it has a computer of its own, and you will see that it ran, not what it ran. Or type into Ella's console yourself; it is the same machine.
 
 **Film (2:12):** https://youtu.be/Le4gWN3Ahu8
 
@@ -15,9 +15,9 @@ ClawRoom is that shape, for agent work.
 
 ## What it does
 
-A shared room where each person brings their own AI agent. Every tool call an agent makes lands in a visible log, like a commit. The person in charge reads the log and never the conversations. Anything irreversible waits for a human.
+A shared room where each person brings their own AI agent, and every agent gets a computer of its own. Every tool call an agent makes lands in a visible log, like a commit. The person in charge reads the log and never the conversations. Anything irreversible waits for a human.
 
-Four rooms ship from one engine: a marketing department, a classroom, a support desk and a shop floor. Switch between them and the tool surface visibly changes, because a room is a definition object rather than an app.
+Five rooms ship from one engine: a marketing department, a classroom, a support desk, a shop floor, and an order desk that was generated from an OpenAPI file. Switch between them and the tool surface visibly changes, because a room is a definition object rather than an app.
 
 The support desk carries the clearest argument. When the same diagnostic fails across four different tickets, that is one product bug and not four support conversations. Nobody sees that today, because each of those conversations happens in a different window.
 
@@ -72,7 +72,7 @@ The thing that was genuinely impossible before is the manager's view. Today a ma
 
 ## How I implemented WebMCP
 
-TypeScript throughout, strict, no framework. Vite builds five pages. Cloudflare Workers serves them, hosts a stateless LLM proxy, and runs one Durable Object per room on the SQLite backend.
+TypeScript throughout, strict, no framework. Vite builds five pages. Cloudflare Workers serves them, hosts a stateless LLM proxy, runs one Durable Object per room on the SQLite backend, one Sandbox container per member per room, and Browser Rendering for the browse tool.
 
 Tools are declared as data on a `RoomDefinition` and registered under a single `AbortController`:
 
@@ -83,7 +83,7 @@ document.modelContext.registerTool({
     'Nobody else in the room sees the words, only that you drafted something.',
   inputSchema: { type: 'object', properties: { /* ... */ }, required: [/* ... */] },
   execute: async (args) => {
-    const outcome = runRoomTool({ store, tool, me, isSteward, args })
+    const outcome = await runRoomTool({ store, tool, me, isSteward, args })
     return { content: [{ type: 'text', text: outcome.text }] }
   },
 }, { signal: ac.signal })
@@ -120,7 +120,7 @@ Reported honestly: the guarded arm scores zero because it cannot do otherwise, w
 
 A client that has never seen this code also drove a room. `scripts/foreign-agent.mjs` attaches from outside the browser, imports nothing from `src/`, and learns the room only through `getTools()`: name, description, and an `inputSchema` it has to parse from a string. It drafted twice, submitted, asked to publish, was parked, checked once, and reported that nothing had shipped. The client is mine, so this is not a third-party product; only its ignorance is guaranteed. It does show that the descriptions carry enough for a stranger, and that the surface is the standard one.
 
-`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **18 of 18** against the deployed origin in a clean Chrome profile with no flags. Four of those cases test the claim rather than a function. One writes a sentinel sentence into a private draft and searches all of shared state for it. One calls publish, checks the board did not move, approves as a human, and only then expects the effect. And two do the same for the computer: a canary sentence goes into a file, `cat` reads it back, shared state is searched and holds nothing, and only `computer_share_file` puts it on the board.
+`/selftest.html` calls every tool through `executeTool()` with no agent involved and passes **18 of 18** against the deployed origin in a clean Chrome profile with no flags. Six of those cases test the claim rather than a function. One writes a sentinel sentence into a private draft and searches all of shared state for it. One calls publish, checks the board did not move, approves as a human, and only then expects the effect. And four do the same for the computer: a canary sentence goes into a file, `cat` reads it back, shared state is searched and holds nothing, and only `computer_share_file` puts it on the board; a server comes up on a port and the page it serves stays out of shared state until `computer_share_page`; and a snapshot survives `rm -rf` of the workspace. The transcript is in `docs/evidence/`.
 
 ## A room from an OpenAPI file
 
@@ -144,11 +144,11 @@ There is no `unregisterTool()`, so a tool surface can only be taken down by abor
 
 This one is here because I got it wrong first. My notes said `getTools()` returned no schema at all, I wrote that in this description, and re-measuring before submitting is what found the truth. `docs/LIMITS.md` keeps the correction rather than quietly deleting it.
 
-Filming the product also surfaced four real bugs that reading the code would not have: a room mounting another room's tools, and a `join` op dispatched before the transport existed so nobody in the log had a name.
+Filming the product also surfaced real bugs that reading the code would not have: a room mounting another room's tools, a `join` op dispatched before the transport existed so nobody in the log had a name, and history replayed into a store that was replaced one line later, which left every late joiner to a non-default room with an empty board.
 
 ## What I know is still weak
 
-`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. Capability links are bearer secrets with no revocation. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
+`docs/LIMITS.md` is in the repo and says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare rather than on the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate a room's invite now, but a leaked link works until they do. Deleting a room does not destroy its members' sandboxes, because only the browser that minted one can address it. No third-party product such as ChatGPT's in-app browser has been observed driving a room; the closest evidence is a foreign client of my own that knows only what `getTools()` returns. The ablation is twenty-eight trials on one model and one prompt.
 
 ## Taking it back to the spec
 

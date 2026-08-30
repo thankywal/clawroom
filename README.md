@@ -169,6 +169,14 @@ happens in a different window.
 
 ![The front door, offering a one click demo room.](docs/media/05-front-door.png)
 
+![A member's console into their own computer: a command, its output, and in
+the work log one line saying it ran, with the output nowhere on the
+board.](docs/media/08-console.png)
+
+![The manager's view of the computers: a table of counts per member, a
+signal that Dan's agent has failed three commands in a row, and buttons to
+rotate the invite or delete the room.](docs/media/09-steward-computers.png)
+
 The front door. **Open the demo room** puts you in as the manager and opens a
 second window as one of your team, so both halves of the room are in front of
 you without any setup.
