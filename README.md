@@ -171,6 +171,10 @@ happens in a different window.
 
 ![The front door, offering a one click demo room.](docs/media/05-front-door.png)
 
+![The agent's own computer: it wrote a script, ran it twice, and shared it to
+the board by choice. The manager's log has exit codes and sizes, never the
+script.](docs/media/10-agent-computer.jpg)
+
 ![A member's console into their own computer: a command, its output, and in
 the work log one line saying it ran, with the output nowhere on the
 board.](docs/media/08-console.png)
