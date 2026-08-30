@@ -148,10 +148,13 @@ than glossed.
 - **Google Chirp 3 HD** for the demo film's narration and **Lyria** for an early
   music bed that was cut.
 
-## Still to do before you press Submit
+## Still to do, and only you can do these
 
-1. The film is on YouTube at https://youtu.be/c9gOER5Djeo and the URL is on
-   the Devpost project. Check it is **public or unlisted**, never private: a
-   judge has to be able to open it without being invited.
-2. Rotate the Devpost access token and refresh token that were pasted into the
-   chat, since they are now in a session log on disk.
+1. **Paste the corrected chapter list into the YouTube description.** The video
+   is public and 2:53, and the description already carries a chapter list, but
+   YouTube renders none of it: three of the thirteen chapters were shorter than
+   ten seconds, which is the minimum, and one bad entry voids the whole list.
+   The corrected eleven are in docs/youtube-listing.txt. Replace the block that
+   begins "Chapters" with that one and the chapter bar appears under the player.
+2. **Rotate the Devpost access token and refresh token** that were pasted into
+   the chat, since they are now in a session log on disk.
