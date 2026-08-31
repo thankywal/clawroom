@@ -90,8 +90,26 @@ export function createAgent(deps: {
   specs: () => AgentToolSpec[]
   system: () => string
   events?: AgentEvents
+  /**
+   * Refuse a tool call this turn has already made with the same arguments.
+   *
+   * Asked a question rather than given a task, llama-3.3-70b calls the room's
+   * read tool, is handed the answer, and calls it again, six times, until the
+   * turn budget runs out and the person gets no answer at all. It is not the
+   * loop losing the result: the result goes back as a user turn and the model
+   * reads it. It just will not commit to answering.
+   *
+   * So an exact repeat is not executed. The model is told the answer is
+   * already above and asked to reply in words. Nothing is invented and the
+   * room's log stays a record of calls that really ran.
+   *
+   * Off by default, and the ablation harness leaves it off, because that
+   * measures a bare loop and its committed transcripts were recorded without
+   * this. The room turns it on.
+   */
+  stopRepeats?: boolean
 }): Agent {
-  const { mc, host, specs, system, events = {} } = deps
+  const { mc, host, specs, system, events = {}, stopRepeats = false } = deps
   let messages: AgentMsg[] = []
   let ac: AbortController | null = null
   let busy = false
@@ -101,7 +119,20 @@ export function createAgent(deps: {
     ...messages.slice(-KEEP_MESSAGES),
   ]
 
-  async function runCall(c: ToolCall): Promise<void> {
+  async function runCall(c: ToolCall, seen: Set<string>): Promise<void> {
+    if (stopRepeats) {
+      const key = `${c.name}|${JSON.stringify(c.args ?? {})}`
+      if (seen.has(key)) {
+        messages.push({
+          role: 'tool', id: c.id, name: c.name,
+          content: `You already called ${c.name} with these arguments in this turn and its ` +
+            'result is above. Calling it again returns the same thing. Do not call it again. ' +
+            'Answer the person now, in plain words.',
+        })
+        return
+      }
+      seen.add(key)
+    }
     const handle = await host.handle(c.name)
     if (!handle) {
       const known = (await host.surface()).join(', ')
@@ -132,6 +163,7 @@ export function createAgent(deps: {
       ac = new AbortController()
       messages.push({ role: 'user', content: userText })
       let calls = 0
+      const seen = new Set<string>()
 
       try {
         for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -152,7 +184,7 @@ export function createAgent(deps: {
 
           for (const c of reply.calls) {
             if (++calls > MAX_CALLS) return events.onDone?.('limit', 'too many tool calls in one go')
-            await runCall(c)
+            await runCall(c, seen)
             if (ac.signal.aborted) return events.onDone?.('stopped')
           }
         }

@@ -142,6 +142,31 @@ works for a person alone, which is the "meaningfully better, not required"
 claim we are making anyway. But a visitor who arrives after the allowance is
 spent will not see an agent that day.
 
+## The hosted model will loop on a question if you let it
+
+Given a task, llama-3.3-70b runs it cleanly: asked to draft two options, submit
+the better one and publish it, it calls draft_post twice, submit_for_review
+once, publish once, gets parked, and often calls check_approval afterwards to
+see whether the publish settled. Measured, more than once, against the deployed
+origin.
+
+Given a question rather than a task, the same model called the room's read tool
+six times in a row and never answered. It is not the loop losing the tool
+result: the result goes back as a user turn and the model can read it, and the
+seventh call would have returned the same three posts as the first. It just
+would not commit to writing the answer down, and the turn budget ran out.
+
+So the room's agent refuses a tool call it has already made this turn with the
+same arguments, and tells the model the answer is above and to reply in words.
+Six calls became one, with an answer. Nothing is invented by the guard, and the
+work log still records only calls that really ran.
+
+Two things worth saying plainly about that. It is a workaround for one model's
+behaviour, not a fix for anything, and a better model would not need it. And
+the ablation harness deliberately leaves the guard off, because that measures a
+bare loop and its committed transcripts were recorded without it, so the
+numbers in EVIDENCE.md are still the numbers that were run.
+
 ## Signals are heuristics with no measured error rate
 
 "Five drafts and nothing submitted" and "four agents failed the same

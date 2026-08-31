@@ -836,6 +836,7 @@ async function connect(): Promise<void> {
       mc, host,
       specs: () => toolSpecs(def, store, isSteward),
       system: () => systemPrompt(def, person, isSteward),
+      stopRepeats: true,
       events: {
         onAssistant: (text) => { chat.push({ k: 'agent', text }); render() },
         onDone: (reason, detail) => {
