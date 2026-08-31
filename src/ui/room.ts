@@ -303,7 +303,8 @@ function render(): void {
             <h2>Your agent</h2>
             <span class="note">${host.available ? 'this conversation stays here' : 'WebMCP unavailable'}</span>
           </div>
-          <div id="chat">${chat.length ? chat.map(chatLine).join('') : `<p class="empty">Ask for something. Try: ${esc(suggestion())}</p>`}</div>
+          <div id="chat">${chat.length ? chat.map(chatLine).join('') : '<p class="empty">Ask for something, or click one of these.</p>'}</div>
+          ${suggestionChips()}
           <div class="composer">
             <input id="say" placeholder="Tell your agent what to do" ${thinking ? 'disabled' : ''}>
             <button class="primary" id="send" ${thinking ? 'disabled' : ''}>${thinking ? 'Working' : 'Send'}</button>
@@ -656,10 +657,44 @@ function render(): void {
   }
 }
 
-function suggestion(): string {
+/**
+ * Things to click, rather than a sentence to retype.
+ *
+ * Every one of these was run against the deployed room before it was put here,
+ * and only the ones that came back with a real answer stayed. That matters more
+ * than it sounds: the old steward suggestion was a question, and a question is
+ * the shape this model was worst at, so the one hint a person landing in an
+ * empty room could see was the one most likely to disappoint them.
+ */
+function suggestions(): { label: string; prompt: string }[] {
   return isSteward
-    ? 'What has happened in here, and is anything waiting on me?'
-    : 'Draft two options for the launch announcement, then submit the better one.'
+    ? [
+        { label: 'Should I ship what is waiting?',
+          prompt: 'Read the approval waiting on me and tell me whether I should ship it' },
+        { label: 'What has everyone been doing?',
+          prompt: "What has each person's agent done in here, and has anyone got stuck?" },
+        { label: 'Catch me up',
+          prompt: 'What has happened in here, and is anything waiting on me?' },
+      ]
+    : [
+        { label: 'Draft it, submit it, ask to publish',
+          prompt: 'Draft the pricing explainer, submit it, then ask to publish it' },
+        { label: 'Two options, submit the better one',
+          prompt: 'Draft two options for the launch announcement, then submit the better one' },
+        { label: 'Use my computer',
+          prompt: 'On your computer, save the launch brief to brief.txt and then list what is in /workspace' },
+      ]
+}
+
+function suggestionChips(): string {
+  // Only until the person has asked for something themselves. After that the
+  // room has their conversation in it and this would just be clutter.
+  if (chat.some(l => l.k === 'you')) return ''
+  return `<div class="tries">
+    <span class="trylabel">try</span>
+    ${suggestions().map(s =>
+      `<button class="try" data-try="${esc(s.prompt)}">${esc(s.label)}</button>`).join('')}
+  </div>`
 }
 
 function chatLine(l: Line): string {
@@ -719,6 +754,13 @@ function wireComposer(): void {
     void agent.send(text)
   }
   el('send')?.addEventListener('click', send)
+  for (const b of Array.from(document.querySelectorAll<HTMLElement>('[data-try]'))) {
+    b.addEventListener('click', () => {
+      if (!input || thinking) return
+      input.value = b.dataset['try'] ?? ''
+      send()
+    })
+  }
   input?.addEventListener('keydown', e => { if ((e as KeyboardEvent).key === 'Enter') send() })
   el('halt')?.addEventListener('click', () => agent?.stop())
   if (thinking) return

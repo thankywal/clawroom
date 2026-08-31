@@ -108,6 +108,17 @@ tr:last-child td{border-bottom:0}
 .line.call .det{color:var(--dim)}
 .line.call.pending{border-left-color:var(--warn)}
 .line.call.pending .what{color:var(--warn)}
+/* Things to click before you have thought of anything to type. Each one was
+   run against the deployed room first, and only the ones that came back with a
+   real answer are here. */
+.tries{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 15px 11px}
+.tries .trylabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--dimmer);margin-right:2px}
+button.try{font:inherit;font-size:12px;color:var(--dim);background:#0a1010;
+  border:1px solid var(--line2);border-radius:999px;padding:4px 11px;cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s}
+button.try:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+button.try:focus-visible{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-dim)}
 .composer{display:flex;gap:8px;padding:11px 15px;border-top:1px solid var(--line)}
 .composer input{flex:1;font:inherit;font-size:13.5px;background:#0a1010;color:var(--ink);
   border:1px solid var(--line2);border-radius:8px;padding:8px 11px}
