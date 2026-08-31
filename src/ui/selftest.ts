@@ -200,6 +200,11 @@ async function main(): Promise<void> {
 
   // 7b. tools the room borrowed. Same tier rules, on an API the room had
   //     never heard of when it was built.
+  // What the browser itself says the surface is, before anybody borrows
+  // anything. Read from getTools() rather than from our own list, because the
+  // claim is about what an outside client would see.
+  const surfaceBefore = (await mc.getTools()).map(t => t.name).sort()
+
   const parsed = await inspectSource(store, `${location.origin}/api/demo/openapi.json`)
   const src = parsed.error ? null : addSourceAsHuman(store, parsed, ME.id)
   report(
@@ -210,6 +215,23 @@ async function main(): Promise<void> {
 
   if (src) {
     await host.mount(campaign, { store, me: ME, isSteward: false })
+
+    // The whole argument for doing this in the page rather than on a server.
+    // Registration is per tool under its own AbortController, so approving a
+    // source adds exactly the new ones and leaves the rest alone. A
+    // whole-surface rebuild would take everything down and put it back, and
+    // any long-lived client holding a handle across that moment would find it
+    // dead. This asserts the delta, not just the total.
+    const surfaceAfter = (await mc.getTools()).map(t => t.name).sort()
+    const added = surfaceAfter.filter(n => !surfaceBefore.includes(n))
+    const lost = surfaceBefore.filter(n => !surfaceAfter.includes(n))
+    report(
+      'the surface grows by the delta, live', 'ontoolchange, no reload',
+      lost.length === 0 && added.length === 4
+        && added.every(n => src.tools.some(t => sourceToolName(src, t) === n)),
+      `${surfaceBefore.length} to ${surfaceAfter.length} on document.modelContext | added ${added.join(', ') || 'none'} | lost ${lost.join(', ') || 'none'}`,
+    )
+
     const listName = src.tools.map(t => sourceToolName(src, t)).find(n => n.endsWith('list_orders'))!
     const refundName = src.tools.map(t => sourceToolName(src, t)).find(n => n.endsWith('refund_order'))!
 

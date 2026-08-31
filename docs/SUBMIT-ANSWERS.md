@@ -69,7 +69,7 @@ for the desk lead the same way publish does.
 Two pages test the claims without any agent at all:
 
 - /selftest.html calls every tool through document.modelContext.executeTool()
-  with no agent involved. 22 of 22 pass, nine of which test a claim rather than
+  with no agent involved. 23 of 23 pass, ten of which test a claim rather than
   a function: a sentinel sentence hunted through all of shared state, a publish
   that must leave the board unmoved until a person clicks, a canary in a file on
   the sandbox, a page served on a port, a snapshot that survives rm -rf, and a
@@ -112,7 +112,7 @@ the finding.
    in review. Worth knowing: codex exec defaults to an approval policy of
    never and refuses MCP calls outright until you pass --approve-for-me.
 5. No agent at all. /selftest.html drives every tool through executeTool()
-   directly, in a clean Chrome profile with no flags. 22 of 22.
+   directly, in a clean Chrome profile with no flags. 23 of 23.
 6. Chrome's Ask Gemini side panel. It does not call WebMCP tools. Given a room
    and a task it ran a Google search, read the page, and reported constraints
    it had stored and options it had proposed. None of it had happened and the

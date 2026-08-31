@@ -96,7 +96,11 @@ has to leave their machine to participate in shared work.
 The tool surface is also live rather than fixed. Switch rooms and the tools
 change, because the tools are a function of which room you are in and whether
 you are its steward. There is no `unregisterTool()` in the API, so that turns
-entirely on the `AbortController` the tools were registered under.
+entirely on the `AbortController` the tools were registered under, one per
+tool, and `mount()` diffs the surface rather than rebuilding it. The self test
+asserts that as a delta and not a total: approving a source takes
+`document.modelContext` from 21 tools to 25, names the four that arrived, and
+requires that none of the other 21 went away in between.
 
 ## One engine, many rooms
 
@@ -383,7 +387,7 @@ happens in a different window.
 ![The ablation page: tier engine 0 of 8, description only 8 of
 8.](docs/media/08-tier-ablation.png)
 
-![The self test: 22 of 22 passed on document.modelContext.](docs/media/09-selftest-22.png)
+![The self test: every tool called through executeTool with no agent involved.](docs/media/09-selftest-22.png)
 
 ![The front door, offering a one click demo room.](docs/media/10-front-door.png)
 
@@ -410,7 +414,7 @@ you without any setup.
   drafted twice, submitted, asked to publish, got parked, and reported that
   nothing had shipped. Transcript in `docs/evidence/`.
 - `/selftest` calls every tool through `executeTool()` with no agent involved:
-  **22/22** against the deployed origin in a clean Chrome profile with no flags.
+  **23/23** against the deployed origin in a clean Chrome profile with no flags.
   Nine of those cases test the claim rather than a function. One writes a
   sentinel sentence into a private draft and then searches all of shared state
   for it. One calls `publish`, checks the board did not move, approves as a
