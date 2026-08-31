@@ -8,8 +8,10 @@ Film (2:53): https://youtu.be/c9gOER5Djeo
 
 Built for [The WebMCP Challenge](https://webmcp.devpost.com/).
 
-![A campaign room with four people in it. The work log shows Dan, Ella and Ava
-making tool calls, each marked local or shared.](docs/media/04-borrowed-tools-landed.png)
+![The manager's room. An approval is waiting with the words it would ship in
+it, the work log on the right shows Ella's agent drafting twice and running a
+script, and four of the eleven tools were borrowed from an order desk
+API.](docs/media/04-borrowed-tools-landed.png)
 
 Four people, four agents, one log. `local` calls kept their payload in the
 member's own browser. The room was told that Ella drafted twice. It was not told
@@ -335,8 +337,10 @@ purpose.
 
 ## What it looks like
 
-![The manager's first screen: one action waiting, and the approval card carries
-the headline, the words that would ship, and the brief.](docs/media/01-approval-with-the-words.png)
+![The manager's first screen. One action waiting, and the approval card carries
+the headline, the words that would ship and the brief. Under Your agent are
+three things to click, each one tested against this room before it was put
+there.](docs/media/01-approval-with-the-words.png)
 
 Ella's agent drafted twice, submitted one, and asked to publish. The publish did
 not publish. It returned a handle and parked, and the card shows the manager the
@@ -351,16 +355,16 @@ The person and their agent share one machine and one log. What you type here
 goes through the same `computer_run` tool the agent uses, so the room gets one
 line and never the output.
 
-![The manager's view of the computers: counts per member, and a banner saying
-Dan's agent has failed four commands in a
-row.](docs/media/03-computers-and-a-stuck-signal.png)
+![The manager's view of the computers: counts per member, never contents, and
+a banner reading: stuck on their computer, Ella's agent has had 4 failed
+commands in a row.](docs/media/03-computers-and-a-stuck-signal.png)
 
 Counts, never contents. When somebody's agent gets stuck the room says so, and
 the manager can go and ask rather than read over a shoulder.
 
 ![Eleven tools in the header, four of them borrowed from an order desk API, and
-a log line reading: Grace, person, added 4 tools from Harbour Foods order
-desk.](docs/media/04-borrowed-tools-landed.png)
+a log line reading: Cara, person, add_tool_source, added 4 tools from Harbour
+Foods order desk.](docs/media/04-borrowed-tools-landed.png)
 
 A member's agent proposed a source and nothing registered. A person approved,
 and in that instant every browser in the room had four more tools. That is what
@@ -387,7 +391,8 @@ happens in a different window.
 ![The ablation page: tier engine 0 of 8, description only 8 of
 8.](docs/media/08-tier-ablation.png)
 
-![The self test: every tool called through executeTool with no agent involved.](docs/media/09-selftest-22.png)
+![The self test: 23 of 23, every case called through executeTool with no agent
+involved.](docs/media/09-selftest-23.png)
 
 ![The front door, offering a one click demo room.](docs/media/10-front-door.png)
 

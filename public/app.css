@@ -220,4 +220,10 @@ button.linky { background: none; border: 0; color: #6fbfb5; cursor: pointer; fon
    is the same kind of thing: something you paste into a terminal. A command
    with a URL in it must not wrap mid URL, so it scrolls sideways instead. */
 .modelform pre.tty { max-height: 220px; margin-bottom: 4px; white-space: pre; overflow-x: auto; font-size: 11.5px; }
+/* The bridge commands are the one block a person has to read all of, and one
+   of them carries a room link long enough to run off the column. Wrapping
+   beats a horizontal scrollbar nobody notices; the Copy button still hands
+   over the real text, and selecting the wrapped text gives the same
+   characters. */
+.modelform pre#bridgecmd { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; max-height: none; }
 .modelform a.ghost { display: inline-block; text-decoration: none; color: #cfd8d6; }
