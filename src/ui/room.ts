@@ -373,6 +373,25 @@ function render(): void {
             </div>
           </div>
     </section>` : ''}
+
+      ${isSteward ? `<section class="zone" style="margin-top:14px">
+        <div class="zhead">
+          <h2>Who gets in</h2>
+          <span class="note">${door === 'ask' ? 'you admit each arrival' : 'anyone with the invite link'}</span>
+        </div>
+        <div class="zbody">
+          ${knocking.length ? `<table class="usage"><thead><tr><th>At the door</th><th>Since</th><th></th></tr></thead>
+            <tbody>${knocking.map(k => `<tr>
+              <td>${esc(k.name)}</td>
+              <td>${new Date(k.at).toLocaleTimeString()}</td>
+              <td><button class="ghost small" data-admit="${esc(k.id)}">Let them in</button>
+                  <button class="ghost small danger" data-refuse="${esc(k.id)}">Turn away</button></td>
+            </tr>`).join('')}</tbody></table>` : `<p class="empty">${door === 'ask' ? 'Nobody is waiting.' : 'The invite link is the whole gate. Anyone holding it walks in.'}</p>`}
+          <div class="btns">
+            <button class="ghost small" id="doortoggle">${door === 'ask' ? 'Let anyone with the link in' : 'Ask me before letting anyone in'}</button>
+          </div>
+        </div>
+      </section>` : ''}
       </div>
 
       <div>
@@ -388,65 +407,46 @@ function render(): void {
           <div class="zhead"><h2>Work log</h2><span class="note">what happened, never what was said</span></div>
           <div id="feed">${s.events.length ? s.events.slice(-60).map(logRow).join('') : '<p class="empty">Nothing yet. It fills as people\'s agents work.</p>'}</div>
         </section>
+
+      <section class="zone" style="margin-top:14px">
+        <div class="zhead">
+          <h2>Borrowed tools</h2>
+          <span class="note">${s.sources.length ? `${s.sources.length} source${s.sources.length === 1 ? '' : 's'}, everyone in the room has them` : 'anything this room borrowed from elsewhere'}</span>
+        </div>
+        <div class="zbody">
+          ${s.sources.length ? `<table class="usage"><thead><tr><th>Source</th><th>Kind</th><th>Tools</th><th>Added by</th>${isSteward ? '<th></th>' : ''}</tr></thead>
+            <tbody>${s.sources.map(src => `<tr>
+              <td title="${esc(src.url)}">${esc(src.name)}</td>
+              <td>${esc(src.kind)}</td>
+              <td>${src.tools.length ? esc(src.tools.map(t => sourceToolName(src, t)).slice(0, 3).join(', ')) + (src.tools.length > 3 ? ` and ${src.tools.length - 3} more` : '') : esc(src.note ?? 'none')}</td>
+              <td>${esc(nameOf(src.addedBy).name)}</td>
+              ${isSteward ? `<td><button class="ghost small danger" data-drop="${esc(src.id)}">Remove</button></td>` : ''}
+            </tr>`).join('')}</tbody></table>` : ''}
+
+          ${sourceDraft?.parsed ? `<div class="banner">
+            <b>${esc(String(sourceDraft.parsed.name ?? sourceDraft.url))}</b> (${esc(String(sourceDraft.parsed.kind))}):
+            ${(sourceDraft.parsed.tools ?? []).length} tools.
+            ${sourceDraft.parsed.note ? `<br>${esc(String(sourceDraft.parsed.note))}` : ''}
+            <div class="srclist">${(sourceDraft.parsed.tools ?? []).slice(0, 14).map((t: any) => `<span class="chip ${esc(t.tier)}">${esc(t.tier)} ${esc(t.name)}</span>`).join('')}</div>
+            <div class="btns">
+              <button class="primary small" id="srcadd">${isSteward ? 'Add to the room' : 'Ask the ' + esc(def.stewardRole) + ' to add it'}</button>
+              <button class="ghost small" id="srccancel">Cancel</button>
+            </div>
+          </div>` : ''}
+          ${sourceDraft?.error ? `<p class="empty">${esc(sourceDraft.error)}</p>` : ''}
+
+          <div class="composer">
+            <input id="srcurl" placeholder="https://api.example.com/openapi.json, or an MCP server URL" value="${esc(sourceDraft?.url ?? '')}" ${sourceDraft?.busy ? 'disabled' : ''}>
+            <button class="ghost" id="srcread" ${sourceDraft?.busy ? 'disabled' : ''}>${sourceDraft?.busy ? 'Reading' : 'Read it'}</button>
+          </div>
+          <p class="empty">Reads an OpenAPI document or a remote MCP server and turns its operations into
+            tools for this room, tiered the same way as everything else. ${isSteward
+              ? 'You can add one because you are a person, not an agent. An agent can only propose one, through <code>add_tool_source</code>, and it parks here for you.'
+              : `Yours goes to the ${esc(def.stewardRole)} as an approval. Nothing registers until they say yes, and then everyone in the room gets it at once.`}</p>
+        </div>
+      </section>
       </div>
     </div>
-
-    <section class="zone" style="margin-top:14px">
-      <div class="zhead">
-        <h2>Borrowed tools</h2>
-        <span class="note">${s.sources.length ? `${s.sources.length} source${s.sources.length === 1 ? '' : 's'}, everyone in the room has them` : 'anything this room borrowed from elsewhere'}</span>
-      </div>
-      <div class="zbody">
-        ${s.sources.length ? `<table class="usage"><thead><tr><th>Source</th><th>Kind</th><th>Tools</th><th>Added by</th>${isSteward ? '<th></th>' : ''}</tr></thead>
-          <tbody>${s.sources.map(src => `<tr>
-            <td title="${esc(src.url)}">${esc(src.name)}</td>
-            <td>${esc(src.kind)}</td>
-            <td>${src.tools.length ? esc(src.tools.map(t => sourceToolName(src, t)).slice(0, 3).join(', ')) + (src.tools.length > 3 ? ` and ${src.tools.length - 3} more` : '') : esc(src.note ?? 'none')}</td>
-            <td>${esc(nameOf(src.addedBy).name)}</td>
-            ${isSteward ? `<td><button class="ghost small danger" data-drop="${esc(src.id)}">Remove</button></td>` : ''}
-          </tr>`).join('')}</tbody></table>` : ''}
-
-        ${sourceDraft?.parsed ? `<div class="banner">
-          <b>${esc(String(sourceDraft.parsed.name ?? sourceDraft.url))}</b> (${esc(String(sourceDraft.parsed.kind))}):
-          ${(sourceDraft.parsed.tools ?? []).length} tools.
-          ${sourceDraft.parsed.note ? `<br>${esc(String(sourceDraft.parsed.note))}` : ''}
-          <div class="srclist">${(sourceDraft.parsed.tools ?? []).slice(0, 14).map((t: any) => `<span class="chip ${esc(t.tier)}">${esc(t.tier)} ${esc(t.name)}</span>`).join('')}</div>
-          <div class="btns">
-            <button class="primary small" id="srcadd">${isSteward ? 'Add to the room' : 'Ask the ' + esc(def.stewardRole) + ' to add it'}</button>
-            <button class="ghost small" id="srccancel">Cancel</button>
-          </div>
-        </div>` : ''}
-        ${sourceDraft?.error ? `<p class="empty">${esc(sourceDraft.error)}</p>` : ''}
-
-        <div class="composer">
-          <input id="srcurl" placeholder="https://api.example.com/openapi.json, or an MCP server URL" value="${esc(sourceDraft?.url ?? '')}" ${sourceDraft?.busy ? 'disabled' : ''}>
-          <button class="ghost" id="srcread" ${sourceDraft?.busy ? 'disabled' : ''}>${sourceDraft?.busy ? 'Reading' : 'Read it'}</button>
-        </div>
-        <p class="empty">Reads an OpenAPI document or a remote MCP server and turns its operations into
-          tools for this room, tiered the same way as everything else. ${isSteward
-            ? 'You can add one because you are a person, not an agent. An agent can only propose one, through <code>add_tool_source</code>, and it parks here for you.'
-            : `Yours goes to the ${esc(def.stewardRole)} as an approval. Nothing registers until they say yes, and then everyone in the room gets it at once.`}</p>
-      </div>
-    </section>
-
-    ${isSteward ? `<section class="zone" style="margin-top:14px">
-      <div class="zhead">
-        <h2>Who gets in</h2>
-        <span class="note">${door === 'ask' ? 'you admit each arrival' : 'anyone with the invite link'}</span>
-      </div>
-      <div class="zbody">
-        ${knocking.length ? `<table class="usage"><thead><tr><th>At the door</th><th>Since</th><th></th></tr></thead>
-          <tbody>${knocking.map(k => `<tr>
-            <td>${esc(k.name)}</td>
-            <td>${new Date(k.at).toLocaleTimeString()}</td>
-            <td><button class="ghost small" data-admit="${esc(k.id)}">Let them in</button>
-                <button class="ghost small danger" data-refuse="${esc(k.id)}">Turn away</button></td>
-          </tr>`).join('')}</tbody></table>` : `<p class="empty">${door === 'ask' ? 'Nobody is waiting.' : 'The invite link is the whole gate. Anyone holding it walks in.'}</p>`}
-        <div class="btns">
-          <button class="ghost small" id="doortoggle">${door === 'ask' ? 'Let anyone with the link in' : 'Ask me before letting anyone in'}</button>
-        </div>
-      </div>
-    </section>` : ''}
 
 `
 
