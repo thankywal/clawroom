@@ -75,7 +75,7 @@ function render(): void {
       <div class="zhead"><h2>See it running</h2><span class="note">nothing to fill in</span></div>
       <div class="zbody">
         <p class="demoline">Opens a marketing room with work already on the board. You land
-          as the manager, and a second window opens as Ella, one of your team, so both halves
+          as Cara, the manager, and a second window opens as Ella, one of your team, so both halves
           of the room are in front of you. Ask Ella's agent to draft and submit something,
           then watch your log fill and an approval arrive. Ella's agent has a computer of its
           own in the room, a real Linux machine, so ask it to write and run a script as well.
@@ -150,7 +150,12 @@ function render(): void {
         if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella&seed=1`
         else second.close()
       }
-      location.href = roomLink(room.roomId, room.secret)
+      // Named on purpose, both of them. Without this the manager's window has
+      // no ?as= and me() mints a name at random from a list of eight that has
+      // Ella in it, so one demo in eight opened with the manager and the member
+      // sharing a name. A log whose whole job is to say who did what cannot
+      // have two people called Ella in it.
+      location.href = `${roomLink(room.roomId, room.secret)}&as=Cara`
     } catch (e) {
       second?.close()
       if (err) err.textContent = String((e as Error)?.message ?? e)
@@ -169,6 +174,8 @@ function render(): void {
       // The creator's items travel in this browser and are written into the
       // room on first connect, so the server never has to know what work is.
       localStorage.setItem(`clawroom:pending:${room.roomId}`, JSON.stringify(itemsFrom(items?.value ?? '')))
+      // No ?as= here on purpose. This is the person's own room, so they keep
+      // whatever name this browser already knows them by.
       location.href = roomLink(room.roomId, room.secret)
     } catch (e) {
       if (err) err.textContent = String((e as Error)?.message ?? e)
