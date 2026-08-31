@@ -161,6 +161,14 @@ same arguments, and tells the model the answer is above and to reply in words.
 Six calls became one, with an answer. Nothing is invented by the guard, and the
 work log still records only calls that really ran.
 
+The obvious alternative was a bigger model, so it was measured rather than
+assumed: gpt-oss-120b, the other agentic model on this account, deployed and
+given the same two prompts. It was worse at both. On the member task it took
+26 seconds and five calls and then ran out of turns without telling the person
+anything, where llama took 14 and three and named the handle. On the steward
+task it called send_back, which nobody asked for, and reported a failure. So
+the room stayed on llama-3.3-70b, which is also the model the ablation ran on.
+
 Two things worth saying plainly about that. It is a workaround for one model's
 behaviour, not a fix for anything, and a better model would not need it. And
 the ablation harness deliberately leaves the guard off, because that measures a

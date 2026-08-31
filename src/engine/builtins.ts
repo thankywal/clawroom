@@ -219,7 +219,12 @@ export function builtinStewardTools(store: RoomStore): RoomTool[] {
       run: (ctx, args) => {
         const id = String(args['itemId'] ?? '')
         const note = String(args['note'] ?? '').trim()
-        const item = ctx.room.items.find(i => i.id === id)
+        // Through the resolver, like every other tool that acts on an item.
+        // A room's board holds w_1 while this tool's own description offers
+        // post_1 as the example, so an exact match refused the very reference
+        // it had just asked for, and the steward's one corrective action was
+        // unusable.
+        const item = findItem(ctx.room.items, id)
         if (!item) return { text: `No item called ${id}.` }
         if (!note) return { text: 'Sending something back needs a reason. Say what has to change.' }
         ctx.put({
