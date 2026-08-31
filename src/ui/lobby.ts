@@ -146,16 +146,31 @@ function render(): void {
         JSON.stringify(itemsFrom(suggested('campaign'))),
       )
       const meta = await roomMeta(room.roomId, room.secret)
-      if (second) {
-        if (meta?.invite) second.location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella&seed=1`
-        else second.close()
-      }
+
       // Named on purpose, both of them. Without this the manager's window has
       // no ?as= and me() mints a name at random from a list of eight that has
       // Ella in it, so one demo in eight opened with the manager and the member
       // sharing a name. A log whose whole job is to say who did what cannot
       // have two people called Ella in it.
-      location.href = `${roomLink(room.roomId, room.secret)}&as=Cara`
+      const asManager = `${roomLink(room.roomId, room.secret)}&as=Cara`
+
+      // The manager goes in the new tab, because Chrome focuses the tab
+      // window.open makes, and the manager is the one the visitor is. It used
+      // to be the other way round: both windows opened correctly and the
+      // visitor was left looking at Ella's, which has no Approve button in it,
+      // reading a writeup that told them the decision was waiting in their
+      // window. Ella seeds from the tab behind, which is fine, because the
+      // room holds a socket open and Chrome does not throttle a page with a
+      // live connection down to anything that would stall it.
+      if (second && meta?.invite) {
+        second.location.href = asManager
+        location.href = `${roomLink(room.roomId, meta.invite)}&as=Ella&seed=1`
+      } else {
+        // No second window, so no colleague and no work waiting. Be the
+        // manager anyway: it is the half with the room controls in it.
+        second?.close()
+        location.href = asManager
+      }
     } catch (e) {
       second?.close()
       if (err) err.textContent = String((e as Error)?.message ?? e)
