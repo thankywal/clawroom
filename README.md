@@ -38,6 +38,50 @@ Git managed the same trick. A commit log shows what changed without showing how
 long you sat there, and a pull request is a place to say yes without being a
 surveillance record.
 
+## The smaller case, which is the one that is true today
+
+A room is for a team, and a team where everybody brings an agent is a near
+future rather than a present one. The version of this that is true on an
+ordinary Tuesday is smaller: **one person running more than one agent at once.**
+
+Anybody with Claude Code and Codex both installed already does it, and already
+has the problem. Two terminals, two histories, no shared record, and the only
+thing stopping either of them from doing something irreversible is that you
+happen to be watching.
+
+ClawRoom gives each one a seat with its own name, its own computer, and one log
+you read. It is the same product, not a different mode:
+
+```
+claude mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>&as=Claude"
+codex  mcp add clawroom -- node scripts/clawroom-mcp.mjs "<member link>&as=Codex"
+```
+
+Both commands are printed for you inside any room, under **Your agent**, with
+that room's link already in them.
+
+Run both at once and the room keeps them apart. Measured, and read out of a
+third window neither agent could write to:
+
+```
+Claude  local   list_posts       read the board, 3 posts
+Codex   local   list_posts       read the board, 3 posts
+Claude  commit  publish          asked to publish "Launch announcement" to blog
+Codex   commit  publish          asked to publish "Launch announcement" to blog
+Claude  local   check_approval   checked apv_ir7e
+Codex   local   check_approval   checked apv_d6hq
+```
+
+The lines interleave, because both were working in the same second. The names
+are right because the server stamps the sender from the socket rather than
+believing the envelope. Two agents asked to publish the same item and got two
+separate handles, and neither shipped. The full run is in
+[docs/evidence/two-agents-one-room-2026-08-31.md](docs/evidence/two-agents-one-room-2026-08-31.md).
+
+`--away "<task>"` is the same thing on a machine you are not watching. An agent
+can work all night. It cannot ship anything all night. You wake up to a queue of
+decisions.
+
 ## Why this needs WebMCP specifically
 
 Because the tools have to live in the page rather than on a server.

@@ -4,7 +4,28 @@
 
 ClawRoom is git for agent work. A shared room where everyone brings their own AI agent, every agent gets a Linux computer of its own, every tool call lands in a log the whole room reads like a commit, and nothing irreversible ships until a person approves it.
 
-Press **Open the demo room**. Two windows open: you as the manager, and Ella, one of your team. Ella's agent has already drafted twice, run a script on its own machine, and asked to publish. That request is sitting in your window with the actual words in it, waiting for you.
+Press **Open the demo room**. Two windows open: you as Cara, the manager, and Ella, one of your team. Ella's agent has already drafted twice, run a script on its own machine, and asked to publish. That request is sitting in your window with the actual words in it, waiting for you.
+
+## The smaller case, which is the one that is true today
+
+A room is for a team, and a team where everybody brings an agent is a near future rather than a present one. The version that is true on an ordinary Tuesday is smaller: **one person running more than one agent at once.** Anybody with Claude Code and Codex both installed already does it, and already has the problem: two terminals, two histories, no shared record, and the only thing stopping either of them from doing something irreversible is that you happen to be watching.
+
+Same product, not a different mode. Each agent gets a seat with its own name, its own computer, and one log you read.
+
+Both bridges started within a second of each other against one room, and this is what a third window, which neither agent could write to, recorded:
+
+```
+Claude  local   list_posts       read the board, 3 posts
+Codex   local   list_posts       read the board, 3 posts
+Claude  commit  publish          asked to publish "Launch announcement" to blog
+Codex   commit  publish          asked to publish "Launch announcement" to blog
+Claude  local   check_approval   checked apv_ir7e
+Codex   local   check_approval   checked apv_d6hq
+```
+
+The lines interleave because both were working in the same second, and the names are still right, because the server stamps the sender from the socket rather than believing the envelope. Two agents asked to publish the same item and got two separate handles. Neither shipped. Two decisions were waiting on a person at the end of it, which is the point of the smaller case: you can leave two agents running and come back to a queue of decisions rather than a pile of published work you did not ask for.
+
+`--away "<task>"` is the same thing on a machine you are not watching. An agent can work all night. It cannot ship anything all night.
 
 ## Why WebMCP, and not a server
 
@@ -72,7 +93,7 @@ Claude Code then did something the design hoped for and could not have scripted:
 
 The most interesting run is the third, because it was not driven by a script. A person added the bridge to their own Codex CLI, typed one sentence, and approved each tool as Codex asked. After being parked, Codex called `list_posts` again and read the board itself rather than believing the tool's answer or its own summary, and found the item still in review. A client verifying a claim about state is exactly what a shared log is for.
 
-All three transcripts are in `docs/evidence/`, next to what the room recorded independently for each.
+All three transcripts are in `docs/evidence/`, next to what the room recorded independently for each, along with the run where both bridges were pointed at one room at the same time.
 
 `--away "<task>"` runs the same thing on a machine you are not watching. An agent can work all night; it cannot ship anything all night. You wake to a queue of decisions.
 
@@ -114,7 +135,7 @@ One of these is here because I got it wrong first: my notes said `getTools()` re
 
 ## What is still weak
 
-`docs/LIMITS.md` says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare, not the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate one, but a leaked link works until they do. The door that makes a steward admit each arrival is a social gate, not an identity system. A borrowed tool's description is written by whoever runs that API, so every borrowed tool is marked untrusted. Bringing your own model puts your key in a browser and passes it through my Worker, which stores nothing, but that is a claim about code you can read. And no shipping agent product speaks WebMCP yet, so the third-party client that drove a room reached it through my adapter.
+`docs/LIMITS.md` says this at length. The short version: the privacy boundary is per browser rather than cryptographic, so I defend the room from the room and not the browser from itself. The computer is on Cloudflare, not the member's laptop, so the operator could read what the room cannot. Capability links are bearer secrets; the steward can rotate one, but a leaked link works until they do. The door that makes a steward admit each arrival is a social gate, not an identity system. A borrowed tool's description is written by whoever runs that API, so every borrowed tool is marked untrusted. Bringing your own model puts your key in a browser and passes it through my Worker, which stores nothing, but that is a claim about code you can read. The hosted model is a small free one and it loops on an open question if nothing stops it, so the room refuses a repeat of a call it already made this turn, which is a workaround for one model rather than a fix for anything. And no shipping agent product speaks WebMCP yet, so the third-party client that drove a room reached it through my adapter.
 
 ## Taking it back to the spec
 
